@@ -7,6 +7,7 @@ import { startBackground } from './background.js';
 import * as audio from './audio.js';
 import { log, warn } from './debug.js';
 import { entangledGroupOf, orderHand } from './entangle.js';
+import { mountQard } from './qard.js';
 
 const SYM = { skip: '⊘', reverse: '⇄', draw2: '+2', wild: '★', wild4: '+4' };
 const GATE_HINT = {
@@ -33,7 +34,6 @@ const AI_THINK_MS = 700; // antes de empezar a actuar
 const AI_PREP_MS = 700;  // compuertas (preparación libre)
 const AI_PLAY_MS = 1100; // jugar/robar (cierra el turno)
 const symOf = f => SYM[f.symbol] ?? f.symbol;
-const colorCls = f => `color-${f.color ?? 'wild'}`;
 
 // Preferencia persistente: marcar (o no) las cartas posiblemente jugables.
 const PLAYABLE_KEY = 'quards:markPlayable';
@@ -151,12 +151,6 @@ export async function mount(root) {
     return probCache.get(key)[c.qubit];
   }
 
-  function faceEl(face, pct) {
-    return el('div', { class: `face ${colorCls(face)}` },
-      el('span', { class: 'num' }, symOf(face)),
-      pct != null ? el('span', { class: 'pct' }, `${Math.round(pct * 100)}%`) : null);
-  }
-
   async function cardEl(id, opts = {}) {
     const c = state.cards[id];
     const node = el('button', { type: 'button', class: `card k-${c.group ? 'qubit' : 'classic'}` });
@@ -164,11 +158,18 @@ export async function mount(root) {
     if (opts.playable) node.classList.add('playable');
     if (opts.selected) node.classList.add('selected');
     if (opts.facedown) { node.classList.add('facedown', 'back'); return node; }
-    if (c.face) node.append(faceEl(c.face, null));
-    else {
+    const grad = f => f.color ?? 'grey';
+    if (c.face) {
+      mountQard(node, { kind: 'classic', color: grad(c.face), symbol: symOf(c.face) });
+    } else {
       const p = await probsFor(id);
       node.classList.add('super');
-      node.append(faceEl(c.outcomes[0], p[0]), faceEl(c.outcomes[1], p[1]));
+      mountQard(node, {
+        kind: 'quantum',
+        color0: grad(c.outcomes[0]), sym0: symOf(c.outcomes[0]),
+        color1: grad(c.outcomes[1]), sym1: symOf(c.outcomes[1]),
+        prob0: Math.round((p?.[0] ?? 0.5) * 100),
+      });
     }
     if (opts.onPointerDown) node.addEventListener('pointerdown', event => opts.onPointerDown(id, event));
     return node;

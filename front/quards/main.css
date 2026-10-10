@@ -7,8 +7,9 @@
   --red: #d8452f;
   --gold: #e6b23a;
   --edge: #0b0a09;
-  --card-w: clamp(56px, min(5vw, 7.5vh), 92px);
-  --card-h: calc(var(--card-w) * 1.34);
+  --card-base-w: clamp(56px, min(5vw, 7.5vh), 92px);
+  --card-w: var(--card-base-w);
+  --card-h: calc(var(--card-w) * 1.4);
 }
 
 * { box-sizing: border-box; }
@@ -32,7 +33,7 @@ html, body {
   mix-blend-mode: multiply;
 }
 
-.app { position: relative; z-index: 10; width: min(1600px, 94vw); margin: 0 auto; padding: 20px 16px 28px; height: 100dvh; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.app { position: relative; z-index: 10; width: min(1600px, 94vw); margin: 0 auto; padding: 10px 16px 12px; height: 100dvh; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
 
 header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .header-left { display: flex; align-items: baseline; gap: 12px; }
@@ -51,33 +52,36 @@ select { font: inherit; color: var(--ink); background: #221f1b; border: 2px soli
 
 section { position: relative; }
 .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; }
-.sec-head { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 6px; }
+.sec-head { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 2px; }
 .count-pill { font-size: 12px; font-weight: 700; color: var(--teal); background: rgba(34,179,160,0.12); border: 2px solid var(--edge); padding: 1px 8px; box-shadow: 2px 2px 0 var(--edge); }
 
 .hand { display: flex; gap: 8px; flex-wrap: wrap; min-height: 0; align-items: flex-end; justify-content: center; }
-.hand.opp { min-height: 0; gap: 0; }
+.hand.opp { min-height: 0; gap: 0; --card-w: calc(var(--card-base-w) * 0.7); }
 .hand.opp .card { pointer-events: none; }
-.hand.opp .card + .card { margin-left: -22px; }
+.hand.opp .card + .card { margin-left: -18px; }
 .hand .card.playable { touch-action: none; }
 
 .card {
   position: relative;
-  width: var(--card-w); height: var(--card-h);
-  font-size: calc(var(--card-w) * 0.28);
+  width: var(--card-w);
+  aspect-ratio: 5 / 7;
+  --qard-w: var(--card-w);
+  font-family: 'Chakra Petch', sans-serif;
   padding: 0;
+  color: inherit;
+  transition: transform 0.12s ease;
+}
+.card, .card:hover, .card:active { background: transparent; border: 0; box-shadow: none; }
+.card:active { transform: none; }
+.card.playable { outline: 3px solid var(--gold); outline-offset: 2px; box-shadow: 0 0 14px var(--gold); }
+.card.selected { transform: translateY(-8px); outline: 3px solid var(--teal); outline-offset: 2px; box-shadow: 0 0 16px var(--teal); }
+.card.facedown {
+  background: linear-gradient(135deg, #143b37, #0d2b28);
   border: 3px solid var(--edge);
   border-radius: 8px;
   box-shadow: 4px 4px 0 rgba(0,0,0,0.55);
-  background: #efe7d6;
-  color: #1b1a18;
-  overflow: hidden;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
-.card:hover { transform: translateY(-4px) rotateX(6deg) rotateY(-4deg); }
-.card.playable { outline: 3px solid var(--gold); outline-offset: -1px; box-shadow: 0 0 14px var(--gold); }
-.card.selected { transform: translateY(-8px); outline: 3px solid var(--teal); box-shadow: 0 0 16px var(--teal); }
-.card.facedown { background: linear-gradient(135deg, #143b37, #0d2b28); }
-.card.facedown.back::after { content: "◈"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--teal); font-size: 1.4em; }
+.card.facedown.back::after { content: "◈"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--teal); font-size: 1.6em; }
 
 .face { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; height: 50%; font-weight: 700; }
 .face .num { font-size: 1em; }
@@ -98,7 +102,7 @@ section { position: relative; }
 .center.action { font-size: 1.1em; }
 
 .deck {
-  position: relative; width: var(--card-w); height: var(--card-h);
+  position: relative; width: var(--card-w); aspect-ratio: 5 / 7;
   font-size: calc(var(--card-w) * 0.28);
   border: 3px solid var(--edge); border-radius: 8px;
   background: repeating-linear-gradient(45deg, #143b37, #143b37 6px, #0d2b28 6px, #0d2b28 12px);
@@ -110,7 +114,7 @@ section { position: relative; }
 .table {
   position: relative;
   align-self: stretch;
-  --card-w: clamp(64px, min(6vw, 9vh), 118px);
+  --card-w: clamp(56px, min(5vw, 7vh), 104px);
   display: flex; gap: 30px; align-items: center; justify-content: center;
   border-radius: 16px;
   background:
@@ -163,12 +167,12 @@ section { position: relative; }
 .card.dragging { opacity: 0.35; }
 .fly { position: fixed; z-index: 300; pointer-events: none; }
 
-.controls { display: flex; gap: 14px; align-items: center; justify-content: center; }
-.controls .draw { background: var(--teal-dim); font-weight: 700; font-size: 15px; padding: 10px 22px; }
+.controls { display: flex; gap: 10px; align-items: center; justify-content: center; }
+.controls .draw { background: var(--teal-dim); font-weight: 700; font-size: 15px; padding: 7px 18px; }
 .turn { color: var(--gold); font-weight: 700; font-size: 14px; }
 
 .status { min-height: 18px; font-size: 14px; margin: 0; }
-.hint-bar { min-height: 20px; margin: 4px 0; font-size: 13px; color: var(--gold); text-align: center; }
+.hint-bar { min-height: 0; margin: 2px 0; font-size: 13px; color: var(--gold); text-align: center; }
 
 .layout { display: grid; grid-template-columns: 280px 1fr; gap: 18px; align-items: stretch; flex: 1; min-height: 0; overflow: hidden; }
 .board {
@@ -178,7 +182,7 @@ section { position: relative; }
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr) auto auto auto;
-  gap: 14px 18px;
+  gap: 6px 18px;
   align-items: center;
 }
 .sidebar {
@@ -256,7 +260,7 @@ section { position: relative; }
 .gates-row { display: flex; align-items: center; gap: 10px; justify-content: center; }
 .gates { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip {
-  min-width: 42px; text-align: center; font-weight: 700; padding: 7px 10px;
+  min-width: 42px; text-align: center; font-weight: 700; padding: 5px 9px;
   background: #24211d; color: var(--ink); border: 2px solid var(--edge);
   box-shadow: 3px 3px 0 var(--edge); cursor: pointer;
 }
@@ -267,4 +271,4 @@ section { position: relative; }
 .chip.gate-z { background: #2b3a7a; }
 .chip.gate-h { background: #1f7a5e; }
 .chip.gate-cnot { background: #7a5a1f; }
-.hand.mine { justify-content: center; padding-top: 16px; }
+.hand.mine { justify-content: center; padding-top: 2px; gap: 6px; --card-w: calc(var(--card-base-w) * 2); }
