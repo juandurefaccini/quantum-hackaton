@@ -5,7 +5,7 @@ import * as rules from '../services/rules.js';
 import { chooseAction } from '../services/ai.js';
 import { startBackground } from './background.js';
 import * as audio from './audio.js';
-import { log, warn } from './debug.js';
+import { log, warn, isDebugVisible, setDebugVisible } from './debug.js';
 import { entangledGroupOf, orderHand } from './entangle.js';
 import { mountQard } from './qard.js';
 import { showCircuitTip, hideCircuitTip } from './circuit.js';
@@ -140,6 +140,10 @@ export async function mount(root) {
     try { localStorage.setItem(PLAYABLE_KEY, markPlayable ? '1' : '0'); } catch { /* sin storage */ }
     render();
   });
+  // El panel de debug arranca apagado; se muestra con este checkbox (arriba).
+  const debugCb = el('input', { type: 'checkbox' });
+  debugCb.checked = isDebugVisible();
+  debugCb.addEventListener('change', () => setDebugVisible(debugCb.checked));
 
   const isHumanTurn = () => state.phase === 'play' && state.turn.current === 0 && !busy;
 
@@ -432,6 +436,7 @@ export async function mount(root) {
       el('div', { class: 'header-left' }, el('h1', {}, 'Quards'), badgeEl),
       el('div', { class: 'header-right' },
         el('label', { class: 'toggle', title: 'Resaltar las cartas que podrían jugarse' }, markCb, 'Jugables'),
+        el('label', { class: 'toggle', title: 'Mostrar el panel de debug' }, debugCb, 'Debug'),
         el('label', {}, 'IA ', levelSel), el('label', {}, 'Motor ', engineSel), newBtn)),
     layout);
 
