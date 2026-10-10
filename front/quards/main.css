@@ -180,7 +180,19 @@ section { position: relative; }
 .turn { color: var(--gold); font-weight: 700; font-size: 14px; }
 
 .status { min-height: 18px; font-size: 14px; margin: 0; }
-.hint-bar { min-height: 0; margin: 2px 0; font-size: 13px; color: var(--gold); text-align: center; }
+.hint-box {
+  flex: none; margin-top: 12px; min-height: 64px;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 9px 11px;
+  background: rgba(0, 0, 0, 0.34);
+  border: 2px solid var(--edge);
+  border-left: 4px solid var(--gold);
+}
+.hint-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+.hint-text { margin: 0; font-size: 13px; line-height: 1.35; color: var(--gold); }
+.hint-circuit { display: none; justify-content: center; margin-top: 6px; }
+.hint-circuit.on { display: flex; }
+.hint-circuit svg { max-width: 100%; height: auto; }
 
 .layout { display: grid; grid-template-columns: 280px 1fr; gap: 18px; align-items: stretch; flex: 1; min-height: 0; overflow: hidden; }
 .board {

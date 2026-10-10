@@ -8,7 +8,7 @@ import * as audio from './audio.js';
 import { log, warn, isDebugVisible, setDebugVisible } from './debug.js';
 import { entangledGroupOf, orderHand } from './entangle.js';
 import { mountQard } from './qard.js';
-import { showCircuitTip, hideCircuitTip } from './circuit.js';
+import { showCircuitTip, hideCircuitTip, circuitSVG } from './circuit.js';
 import { playCollapse } from './collapse.js';
 
 const SYM = { skip: '⊘', reverse: '⇄', draw2: '+2', wild: '★', wild4: '+4' };
@@ -107,6 +107,7 @@ export async function mount(root) {
   let selectedId = null;
   let press = null;
   let busy = false;
+  let inspectedGroupId = null; // grupo cuya carta se está inspeccionando (hover)
   const probCache = new Map();
   // Manos en el render anterior, para animar los robos (delta de cartas).
   let lastCounts = { me: state.players[0].hand.length, opp: state.players[1].hand.length };
@@ -126,7 +127,8 @@ export async function mount(root) {
   const gatesEl = el('div', { class: 'gates' });
   const turnEl = el('span', { class: 'turn' });
   const statusEl = el('p', { class: 'status', role: 'status', 'aria-live': 'polite' });
-  const hintEl = el('div', { class: 'hint-bar', role: 'note' });
+  const hintEl = el('p', { class: 'hint-text', role: 'note', 'aria-live': 'polite' });
+  const circuitBoxEl = el('div', { class: 'hint-circuit' });
   const logEl = el('div', { class: 'log' });
   const statYouEl = el('span', { class: 'n' }, '0');
   const statAiEl = el('span', { class: 'n' }, '0');
@@ -146,6 +148,22 @@ export async function mount(root) {
   debugCb.addEventListener('change', () => setDebugVisible(debugCb.checked));
 
   const isHumanTurn = () => state.phase === 'play' && state.turn.current === 0 && !busy;
+
+  // Texto contextual del cuadro informativo (arriba del botón Robar).
+  function contextHint() {
+    if (state.phase === 'over') return state.winner === 'p1' ? 'Ganaste. Empezá una nueva partida cuando quieras.' : 'Ganó la IA. Probá otra vez.';
+    if (!isHumanTurn()) return 'La IA está pensando… Pasá el mouse por tus cartas para ver su circuito.';
+    if (!rules.hasMove(state)) return 'No tenés jugadas posibles: robá una carta (el botón está encendido).';
+    return 'Tu turno: jugá una carta o prepará con una puerta.';
+  }
+
+  // Dibuja el circuito del grupo inspeccionado dentro del cuadro informativo.
+  function renderBoxCircuit() {
+    const g = inspectedGroupId ? state.groups[inspectedGroupId] : null;
+    if (!g) { circuitBoxEl.replaceChildren(); circuitBoxEl.classList.remove('on'); return; }
+    circuitBoxEl.replaceChildren(circuitSVG(g, { measured: g.collapsed, bits: g.bits }));
+    circuitBoxEl.classList.add('on');
+  }
 
   async function probsFor(id) {
     const c = state.cards[id];
@@ -179,11 +197,12 @@ export async function mount(root) {
     }
     if (c.group) {
       const g = state.groups[c.group];
-      const show = () => showCircuitTip(node, g);
+      const show = () => { inspectedGroupId = g.id; renderBoxCircuit(); showCircuitTip(node, g); };
+      const leave = () => { inspectedGroupId = null; renderBoxCircuit(); hideCircuitTip(); };
       node.addEventListener('pointerenter', show);
       node.addEventListener('focus', show);
-      node.addEventListener('pointerleave', hideCircuitTip);
-      node.addEventListener('blur', hideCircuitTip);
+      node.addEventListener('pointerleave', leave);
+      node.addEventListener('blur', leave);
     }
     if (opts.onPointerDown) node.addEventListener('pointerdown', event => opts.onPointerDown(id, event));
     return node;
@@ -396,7 +415,8 @@ export async function mount(root) {
 
     if (pendingGate) hintEl.textContent = GATE_HINT[pendingGate.gate];
     else if (selectedId) hintEl.textContent = 'Arrastrá la carta al descarte o clickeá el descarte para jugarla.';
-    else hintEl.textContent = '';
+    else hintEl.textContent = contextHint();
+    renderBoxCircuit();
 
     // Robar es la única jugada posible: el botón se enciende.
     const mustDraw = isHumanTurn() && !rules.hasMove(state);
@@ -419,6 +439,10 @@ export async function mount(root) {
         el('div', { class: 'stat' }, statDeckEl, el('span', { class: 'k' }, 'Mazo'))),
       el('h2', {}, 'Historial'),
       logEl,
+      el('div', { class: 'hint-box' },
+        el('span', { class: 'hint-title' }, 'Info'),
+        hintEl,
+        circuitBoxEl),
       el('div', { class: 'sidebar-draw' }, drawBtn)),
     el('main', { class: 'board' },
       el('section', { class: 'opponent' },
@@ -427,7 +451,6 @@ export async function mount(root) {
       el('section', { class: 'table' },
         el('div', { class: 'pile' }, el('span', { class: 'label' }, 'Mazo'), deckEl),
         el('div', { class: 'pile' }, el('span', { class: 'label' }, 'Descarte'), discardEl)),
-      hintEl,
       el('section', { class: 'mine' }, handEl),
       el('section', { class: 'gates-row' }, el('span', { class: 'label' }, 'Puertas'), gatesEl)));
 
