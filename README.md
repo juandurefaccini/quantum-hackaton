@@ -86,7 +86,6 @@ Con el dev-server levantado, los prototipos visuales quedan accesibles en:
 
 ```
 http://localhost:8000/cards/index.html            # cartas cuánticas + clásicas (hover)
-http://localhost:8000/cards/variants.html         # variantes
 ```
 
 > Se sirven por HTTP (no abrir con `file://`): al usar ES modules, el navegador bloquea los
@@ -120,14 +119,10 @@ tests corren con el motor de referencia local, así que el stub (que lanza) nunc
 ├── docs/               idea · decisions · plan
 ├── back/               motor del juego (estado.js) + capa cuántica (quantum/)
 │   ├── estado.js
-│   └── quantum/        qiskit.js · referencia.js · autotest.js
+│   └── quantum/        qiskit.js · referencia.js
 ├── front/
-│   ├── quards/         APP PRINCIPAL (dev-server, tests, ui, services)
-│   └── quards-quantum-lab/  probe previo (referencia)
-├── cards/              prototipos de cartas (index · variants)
-├── utils/zip.js
-├── index.html          banco de pruebas del motor (autoprueba Qiskit)
-└── main.js
+│   └── quards/         APP PRINCIPAL (dev-server, tests, ui, services)
+└── cards/              prototipos de cartas (index · card_final)
 ```
 
 ## Licencia
