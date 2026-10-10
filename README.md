@@ -87,7 +87,6 @@ Con el dev-server levantado, los prototipos visuales quedan accesibles en:
 ```
 http://localhost:8000/cards/index.html            # cartas cuánticas + clásicas (hover)
 http://localhost:8000/cards/variants.html         # variantes
-http://localhost:8000/front/quards/cards-lab.html # laboratorio de cartas
 ```
 
 > Se sirven por HTTP (no abrir con `file://`): al usar ES modules, el navegador bloquea los
