@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qards - CSS Puro & Aspect Ratio Real (5:7)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;500;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #0d0f12;
+      color: #fff;
+      font-family: 'Chakra Petch', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 30px;
+    }
+
+    .board {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* CARTA: ASPECT RATIO 5:7 (MEDIDA REAL DE CARTA DE PÓKER / UNO) */
+    .qard-minimal {
+      width: 200px;
+      height: 280px;
+      border-radius: 18px;
+      border: 3px solid #ffffff;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.7);
+      user-select: none;
+      background-color: #0d1117;
+    }
+
+    /* TRIÁNGULOS DIAGONALES CON CLIP-PATH */
+    .half-0 {
+      position: absolute;
+      inset: 0;
+      clip-path: polygon(0 0, 100% 0, 0 100%);
+    }
+
+    .half-1 {
+      position: absolute;
+      inset: 0;
+      clip-path: polygon(100% 0, 100% 100%, 0 100%);
+    }
+
+    /* LÍNEA DIVISORIA DIAGONAL */
+    .diagonal-line {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom right, transparent calc(50% - 1px), rgba(255, 255, 255, 0.814) 50%, transparent calc(50% + 1px));
+      pointer-events: none;
+    }
+
+    /* GRADIENTES COMPILADOS EN CSS */
+    .grad-red {
+      background: radial-gradient(circle at 30% 30%, #e53935 0%, #5e1212 100%);
+    }
+
+    .grad-blue {
+      background: radial-gradient(circle at 30% 30%, #1e28e5 0%, #12056f 100%);
+    }
+
+    .grad-green {
+      background: radial-gradient(circle at 30% 30%, #33b435 0%, #1f5b17 100%);
+    }
+
+    .grad-yellow {
+      background: radial-gradient(circle at 30% 30%, #fff458 0%, #b19a09 100%);
+    }
+
+    .grad-grey {
+      background: radial-gradient(circle at 30% 30%, #2c2130 0%, #0d1117 100%);
+    }
+
+
+    .red{
+      background-color: #d31815;
+    }
+
+    .blue{
+      background-color: #1c24be;
+    }
+
+    .yellow{
+      background-color: #e4d82e ;
+    }
+
+    .green{
+      background-color:#1ba91d ;
+    }
+
+    .dark{
+      background-color: #000000;
+    }
+
+    /* CAPA DE SÍMBOLOS CENTRALES */
+    .symbols-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .sym {
+      position: absolute;
+      font-size: 3.8rem;
+      font-weight: 300;
+      color: #ffffff;
+      line-height: 1;
+    }
+
+    .sym-0 {
+      top: 30%;
+      left: 30%;
+      transform: translate(-50%, -50%);
+    }
+
+    .sym-1 {
+      bottom: 30%;
+      right: 30%;
+      transform: translate(50%, 50%);
+    }
+
+    /* ESQUINAS CON LOS KETS */
+    .content {
+      position: absolute;
+      inset: 0;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .header { display: flex; justify-content: flex-start; }
+    .footer { display: flex; justify-content: flex-end; }
+
+    .ket-badge {
+      font-size: 1.2rem;
+      font-weight: 300;
+      color: #ffffff;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+    }
+
+    /* FONDO COMPLETO Y SÍMBOLO CENTRADO PARA CARTAS CLÁSICAS */
+    .full-bg {
+     position: absolute;
+     inset: 0;
+    }
+
+     .sym-center {
+       top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+     }
+
+  </style>
+</head>
+<body>
+
+  <div id="board" class="board"></div>
+
+  <script>
+    // JS SOLO MANEJA NOMBRES DE CLASES Y DATOS
+    const cards = [
+      { color0: 'red', sym0: '7', color1: 'blue', sym1: '2' },
+      { color0: 'green', sym0: 'Ø', color1: 'yellow', sym1: '+2' },
+      { color0: 'grey', sym0: '★', color1: 'red', sym1: '+4' },
+      { color0: 'grey', sym0: '★', color1: 'grey', sym1: '★' }
+    ];
+
+    function createQard({ color0, sym0, color1, sym1 }) {
+      const el = document.createElement('div');
+      el.className = 'qard-minimal';
+
+      el.innerHTML = `
+        <div class="half-0 ${color0}"></div>
+        <div class="half-1 ${color1}"></div>
+        <div class="diagonal-line"></div>
+        
+
+        <div class="symbols-layer">
+          <span class="sym sym-0">${sym0}</span>
+          <span class="sym sym-1">${sym1}</span>
+        </div>
+
+        <div class="content">
+          <div class="header">
+            <span class="ket-badge">|0⟩</span>
+          </div>
+          <div class="footer">
+            <span class="ket-badge">|1⟩</span>
+          </div>
+        </div>
+      `;
+
+      return el;
+    }
+
+    function createClassicQard({ color, symbol }) {
+     const el = document.createElement('div');
+     el.className = 'qard-minimal';
+
+     el.innerHTML = `
+     <div class="full-bg ${color}"></div>
+
+     <div class="symbols-layer">
+       <span class="sym sym-center">${symbol}</span>
+     </div>
+
+     <div class="content">
+       <div class="header">
+         <span class="ket-badge">${symbol}</span>
+       </div>
+       <div class="footer">
+         <span class="ket-badge">${symbol}</span>
+       </div>
+     </div>
+   `;
+
+  return el;
+}
+
+    const board = document.getElementById('board');
+    cards.forEach(card => board.appendChild(createQard(card)));
+
+    // Carta clásica roja con valor 7
+const card7 = createClassicQard({ color: 'red', symbol: '7' });
+
+// Carta clásica azul con Reversa (⇄)
+const cardReverse = createClassicQard({ color: 'blue', symbol: '⇄' });
+
+board.appendChild(card7);
+board.appendChild(cardReverse);
+  </script>
+</body>
+</html>
