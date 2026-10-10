@@ -394,7 +394,10 @@ export async function mount(root) {
     else if (selectedId) hintEl.textContent = 'Arrastrá la carta al descarte o clickeá el descarte para jugarla.';
     else hintEl.textContent = '';
 
-    drawBtn.disabled = !(isHumanTurn() && !rules.hasMove(state));
+    // Robar es la única jugada posible: el botón se enciende.
+    const mustDraw = isHumanTurn() && !rules.hasMove(state);
+    drawBtn.disabled = !mustDraw;
+    drawBtn.classList.toggle('only-option', mustDraw);
 
     logEl.replaceChildren(...state.log.map((line, i) => el('div', { class: `line${i === state.log.length - 1 ? ' last' : ''}` }, line)));
     logEl.scrollTop = logEl.scrollHeight;
@@ -411,7 +414,8 @@ export async function mount(root) {
         el('div', { class: 'stat' }, statAiEl, el('span', { class: 'k' }, 'IA')),
         el('div', { class: 'stat' }, statDeckEl, el('span', { class: 'k' }, 'Mazo'))),
       el('h2', {}, 'Historial'),
-      logEl),
+      logEl,
+      el('div', { class: 'sidebar-draw' }, drawBtn)),
     el('main', { class: 'board' },
       el('section', { class: 'opponent' },
         el('div', { class: 'sec-head' }, el('span', { class: 'label' }, 'IA'), oppCountEl),
@@ -421,8 +425,7 @@ export async function mount(root) {
         el('div', { class: 'pile' }, el('span', { class: 'label' }, 'Descarte'), discardEl)),
       hintEl,
       el('section', { class: 'mine' }, handEl),
-      el('section', { class: 'gates-row' }, el('span', { class: 'label' }, 'Puertas'), gatesEl),
-      el('div', { class: 'controls' }, drawBtn)));
+      el('section', { class: 'gates-row' }, el('span', { class: 'label' }, 'Puertas'), gatesEl)));
 
   const app = el('div', { class: 'app' },
     el('header', {},
