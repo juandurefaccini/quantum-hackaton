@@ -26,3 +26,6 @@ venv/
 
 # Tooling cache
 .atl/
+
+# Build artifacts (project bundle)
+*.zip
