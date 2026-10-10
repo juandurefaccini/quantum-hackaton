@@ -17,8 +17,9 @@ Especificación en `docs/idea.md`, decisiones resueltas en `docs/decisions.md`, 
 - **Motor cuántico (puerto `services/quantum.js`):**
   - **Qollab** → Qiskit (`back/quantum/qiskit.js`).
   - **IonQ** (local) → `services/ionq.js` vía el proxy del dev-server. Activá con `?engine=ionq` en la
-    URL (o `globalThis.QUARDS_ENGINE='ionq'`). El dev-server lee la key de `front/quards/.env`
-    (`IONQ_API_KEY=...`) o de `--env <ruta>` / `--key`. La key **nunca** va al browser ni al repo.
+    URL (o `globalThis.QUARDS_ENGINE='ionq'`). La key la lee el dev-server de `process.env.IONQ_API_KEY`,
+    de un `.env` (copiá `front/quards/.env.example` → `front/quards/.env`) o de `--env <ruta>` / `--key`.
+    **La key nunca va al browser ni al repo** (`.env` está gitignored).
   - **referencia** (local, por defecto) → simulador JS (`back/quantum/referencia.js`).
   - Las **probabilidades** siempre son exactas (Qiskit Statevector en Qollab, referencia en local);
     IonQ aporta la **medición** (el colapso).
