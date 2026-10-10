@@ -1,27 +1,33 @@
-// Draws animated lines between entangled cards (same groupId) in a player's hand.
-// The overlay SVG is sized to the app and repositioned on every render.
-export function sizeLayer(svg, root) {
-  const rect = root.getBoundingClientRect();
-  svg.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
-  svg.style.width = `${rect.width}px`;
-  svg.style.height = `${rect.height}px`;
-  svg.style.left = `${rect.left}px`;
-  svg.style.top = `${rect.top}px`;
+// Entrelazamiento en la mano: las cartas de un mismo grupo se renderizan juntas
+// (contiguas) y se enlazan con un marco, para que no haya líneas encima de las caras.
+//
+// Un grupo con 2+ cartas sin colapsar está entrelazado; un grupo de 1 carta es solo
+// una superposición (no se marca visualmente).
+
+export function entangledGroupOf(state, id, hand) {
+  const card = state.cards[id];
+  if (!card || !card.group) return null;
+  const group = state.groups[card.group];
+  if (!group || group.collapsed || card.face) return null;
+  // Solo cuenta como entrelazado visible si hay 2+ cartas del grupo en esta mano:
+  // un grupo puede estar repartido (la otra carta en la IA/mazo) y entonces no hay par que mostrar.
+  const inHand = hand ? group.cards.filter(x => hand.includes(x)).length : group.cards.length;
+  return inHand >= 2 ? group : null;
 }
 
-// groups: Map<groupId, HTMLElement[]>
-export function drawEntangleLines(svg, groups, root) {
-  const rect = root.getBoundingClientRect();
-  const parts = [];
-  for (const [id, els] of groups) {
-    const pts = els.map(el => {
-      const r = el.getBoundingClientRect();
-      return { x: r.left + r.width / 2 - rect.left, y: r.top + r.height / 2 - rect.top };
-    });
-    for (let i = 0; i < pts.length - 1; i++) {
-      parts.push(`<line class="ent-line" x1="${pts[i].x}" y1="${pts[i].y}" x2="${pts[i + 1].x}" y2="${pts[i + 1].y}" />`);
+// Reordena la mano para que las cartas de un mismo grupo queden contiguas,
+// preservando el orden relativo del resto.
+export function orderHand(state, hand) {
+  const ordered = [];
+  const placed = new Set();
+  for (const id of hand) {
+    const group = entangledGroupOf(state, id, hand);
+    if (!group) { ordered.push(id); continue; }
+    if (placed.has(group.id)) continue;
+    placed.add(group.id);
+    for (const other of hand) {
+      if (entangledGroupOf(state, other, hand)?.id === group.id) ordered.push(other);
     }
-    for (const p of pts) parts.push(`<circle class="ent-node" cx="${p.x}" cy="${p.y}" r="5" />`);
   }
-  svg.innerHTML = parts.join('');
+  return ordered;
 }

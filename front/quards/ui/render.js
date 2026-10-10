@@ -6,7 +6,7 @@ import { chooseAction } from '../services/ai.js';
 import { startBackground } from './background.js';
 import * as audio from './audio.js';
 import { log, warn } from './debug.js';
-import { sizeLayer, drawEntangleLines } from './entangle.js';
+import { entangledGroupOf, orderHand } from './entangle.js';
 
 const SYM = { skip: '⊘', reverse: '⇄', draw2: '+2', wild: '★', wild4: '+4' };
 const GATE_HINT = {
@@ -21,14 +21,71 @@ const el = (tag, props = {}, ...children) => {
     if (k === 'class') node.className = v;
     else if (k === 'html') node.innerHTML = v;
     else if (k.startsWith('on') && typeof v === 'function') node.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (typeof v === 'boolean') { if (k in node) node[k] = v; else if (v) node.setAttribute(k, ''); else node.removeAttribute(k); }
     else if (v !== null && v !== undefined) node.setAttribute(k, v);
   }
   for (const c of children.flat()) if (c != null) node.append(c.nodeType ? c : document.createTextNode(String(c)));
   return node;
 };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Ritmo de la IA: pausas para poder seguir la partida paso a paso.
+const AI_THINK_MS = 700; // antes de empezar a actuar
+const AI_PREP_MS = 700;  // compuertas (preparación libre)
+const AI_PLAY_MS = 1100; // jugar/robar (cierra el turno)
 const symOf = f => SYM[f.symbol] ?? f.symbol;
 const colorCls = f => `color-${f.color ?? 'wild'}`;
+
+// Preferencia persistente: marcar (o no) las cartas posiblemente jugables.
+const PLAYABLE_KEY = 'quards:markPlayable';
+function loadFlag(key, fallback = true) {
+  try { const v = localStorage.getItem(key); return v === null ? fallback : v === '1'; } catch { return fallback; }
+}
+
+// FLIP: anima las cartas que cambiaron de posición en la mano (p.ej. al entrelazarse).
+// Se ignoran los desplazamientos chicos (selección/hover) con un umbral.
+function animateHandMoves(prevRects, container) {
+  if (!prevRects.size) return;
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  const THRESHOLD = 20;
+  for (const node of container.querySelectorAll('.card')) {
+    const prev = prevRects.get(node.dataset.id);
+    if (!prev) continue;
+    const next = node.getBoundingClientRect();
+    const dx = prev.left - next.left;
+    const dy = prev.top - next.top;
+    if (Math.abs(dx) < THRESHOLD && Math.abs(dy) < THRESHOLD) continue;
+    node.animate(
+      [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0px, 0px)' }],
+      { duration: 340, easing: 'cubic-bezier(0.2, 0.9, 0.2, 1)' },
+    );
+  }
+}
+
+// Anima cartas robadas: vuelan del mazo a la mano destino (carta boca abajo).
+function flyCards(deckEl, targetEl, count) {
+  if (count <= 0) return;
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  const from = deckEl.getBoundingClientRect();
+  const to = targetEl.getBoundingClientRect();
+  if (!from.width || !to.width) return;
+  const fx = from.left + from.width / 2;
+  const fy = from.top + from.height / 2;
+  const dx = to.left + to.width / 2 - fx;
+  const dy = to.top + to.height / 2 - fy;
+  for (let i = 0; i < count; i++) {
+    const ghost = el('div', { class: 'card facedown back fly' });
+    ghost.style.left = `${fx}px`;
+    ghost.style.top = `${fy}px`;
+    document.body.append(ghost);
+    ghost.animate(
+      [
+        { transform: 'translate(-50%, -50%) scale(1) rotate(-6deg)', opacity: 1 },
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.85) rotate(6deg)`, opacity: 0.85 },
+      ],
+      { duration: 420, delay: i * 90, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'forwards' },
+    ).onfinish = () => ghost.remove();
+  }
+}
 
 export async function mount(root) {
   audio.armAudio();
@@ -43,11 +100,14 @@ export async function mount(root) {
 
   let state = rules.newGame({ seed: Date.now() % 100000 });
   let level = 'medium';
+  let markPlayable = loadFlag(PLAYABLE_KEY);
   let pendingGate = null; // { gate, a }
   let selectedId = null;
   let press = null;
   let busy = false;
   const probCache = new Map();
+  // Manos en el render anterior, para animar los robos (delta de cartas).
+  let lastCounts = { me: state.players[0].hand.length, opp: state.players[1].hand.length };
 
   const badgeEl = el('span', { class: 'badge' });
   const levelSel = el('select', {},
@@ -71,8 +131,13 @@ export async function mount(root) {
   const statDeckEl = el('span', { class: 'n' }, '0');
   const drawBtn = el('button', { class: 'draw', type: 'button' }, 'Robar');
   const newBtn = el('button', { class: 'ghost', type: 'button' }, 'Nueva partida');
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('class', 'entangle-layer');
+  const markCb = el('input', { type: 'checkbox' });
+  markCb.checked = markPlayable;
+  markCb.addEventListener('change', () => {
+    markPlayable = markCb.checked;
+    try { localStorage.setItem(PLAYABLE_KEY, markPlayable ? '1' : '0'); } catch { /* sin storage */ }
+    render();
+  });
 
   const isHumanTurn = () => state.phase === 'play' && state.turn.current === 0 && !busy;
 
@@ -128,7 +193,13 @@ export async function mount(root) {
 
   async function onGate(gate) {
     if (!isHumanTurn()) return;
-    pendingGate = gate === 'cnot' ? { gate, a: null } : { gate };
+    // Volver a presionar la misma puerta cancela la selección pendiente.
+    if (pendingGate && pendingGate.gate === gate) {
+      pendingGate = null;
+      hintEl.textContent = '';
+    } else {
+      pendingGate = gate === 'cnot' ? { gate, a: null } : { gate };
+    }
     audio.tick();
     await render();
   }
@@ -201,7 +272,7 @@ export async function mount(root) {
   drawBtn.addEventListener('click', async () => { if (isHumanTurn() && !rules.hasMove(state)) { audio.blip(); rules.draw(state); await render(); scheduleAI(); } });
   levelSel.addEventListener('change', () => { level = levelSel.value; });
   engineSel.addEventListener('change', () => { quantum.setEngine(engineSel.value); log(`motor → ${engineSel.value}`); render(); });
-  newBtn.addEventListener('click', () => { state = rules.newGame({ seed: Date.now() % 100000 }); pendingGate = null; selectedId = null; busy = false; render(); });
+  newBtn.addEventListener('click', () => { state = rules.newGame({ seed: Date.now() % 100000 }); lastCounts = { me: state.players[0].hand.length, opp: state.players[1].hand.length }; pendingGate = null; selectedId = null; busy = false; render(); });
 
   function scheduleAI() {
     if (state.phase !== 'play' || state.turn.current !== 1) return;
@@ -209,18 +280,21 @@ export async function mount(root) {
   }
   async function aiTurn() {
     busy = true; await render();
+    await sleep(AI_THINK_MS);
     let guard = 0;
     while (state.phase === 'play' && state.turn.current === 1 && guard++ < 300) {
       const action = await chooseAction(state, 1, level);
       if (!action) break;
+      let stepMs = AI_PREP_MS;
       if (action.type === 'gate') rules.applyGate(state, action.gate, action.a, action.b);
-      else if (action.type === 'draw') rules.draw(state);
+      else if (action.type === 'draw') { rules.draw(state); stepMs = AI_PLAY_MS; }
       else {
         const r = rules.play(state, action.cardId);
         if (r.needsMeasure) { try { rules.resolveMeasure(state, await quantum.medirGrupo(r.needsMeasure)); } catch (e) { warn(`medición IA: ${e?.message ?? e}`); } }
+        stepMs = AI_PLAY_MS;
       }
       await render();
-      await sleep(250);
+      await sleep(stepMs);
     }
     busy = false; await render();
     if (state.phase === 'over') audio.runChord();
@@ -228,7 +302,12 @@ export async function mount(root) {
 
   // ---------- render ----------
   async function render() {
+    const prevHandRects = new Map();
+    handEl.querySelectorAll('.card').forEach(node => prevHandRects.set(node.dataset.id, node.getBoundingClientRect()));
     const me = state.players[0], opp = state.players[1];
+    const grewMe = Math.max(0, me.hand.length - lastCounts.me);
+    const grewOpp = Math.max(0, opp.hand.length - lastCounts.opp);
+    lastCounts = { me: me.hand.length, opp: opp.hand.length };
     badgeEl.textContent = `motor: ${quantum.kind()}`;
     engineSel.replaceChildren(
       ...(quantum.isQollab() ? [el('option', { value: 'qiskit' }, 'Qiskit')]
@@ -246,16 +325,28 @@ export async function mount(root) {
     discardEl.replaceChildren(await cardEl(state.discard[state.discard.length - 1]));
 
     handEl.replaceChildren();
-    for (const id of me.hand) {
-      const playable = isHumanTurn() && rules.canPlay(state, id);
+    const pods = new Map();
+    for (const id of orderHand(state, me.hand)) {
+      const playable = markPlayable && isHumanTurn() && rules.canPlay(state, id);
       const isTarget = pendingGate && !state.cards[id].face;
-      handEl.append(await cardEl(id, { playable: playable || isTarget, selected: selectedId === id, onPointerDown: startPress }));
+      const node = await cardEl(id, { playable: playable || isTarget, selected: selectedId === id, onPointerDown: startPress });
+      const group = entangledGroupOf(state, id, me.hand);
+      if (!group) { handEl.append(node); continue; }
+      let pod = pods.get(group.id);
+      if (!pod) {
+        pod = el('div', { class: 'ent-group', title: 'Cartas entrelazadas: se miden juntas' });
+        pods.set(group.id, pod);
+        handEl.append(pod);
+      }
+      pod.append(node);
     }
+    animateHandMoves(prevHandRects, handEl);
 
     gatesEl.replaceChildren();
     if (!me.gates.length) gatesEl.append(el('span', { class: 'muted' }, 'sin puertas'));
     me.gates.forEach(gate => gatesEl.append(el('button', {
-      type: 'button', class: `chip gate-${gate}`, title: GATE_HINT[gate], disabled: !isHumanTurn(),
+      type: 'button', class: `chip gate-${gate}${pendingGate && pendingGate.gate === gate ? ' active' : ''}`,
+      title: GATE_HINT[gate], disabled: !isHumanTurn(),
       onclick: () => onGate(gate),
     }, gate.toUpperCase())));
 
@@ -273,13 +364,8 @@ export async function mount(root) {
     logEl.replaceChildren(...state.log.map((line, i) => el('div', { class: `line${i === state.log.length - 1 ? ' last' : ''}` }, line)));
     logEl.scrollTop = logEl.scrollHeight;
 
-    sizeLayer(svg, root);
-    const groups = new Map();
-    handEl.querySelectorAll('.card').forEach(node => {
-      const c = state.cards[node.dataset.id];
-      if (c && c.group) { if (!groups.has(c.group)) groups.set(c.group, []); groups.get(c.group).push(node); }
-    });
-    drawEntangleLines(svg, groups, root);
+    flyCards(deckEl, oppHandEl, grewOpp);
+    flyCards(deckEl, handEl, grewMe);
   }
 
   const layout = el('div', { class: 'layout' },
@@ -306,10 +392,12 @@ export async function mount(root) {
   const app = el('div', { class: 'app' },
     el('header', {},
       el('div', { class: 'header-left' }, el('h1', {}, 'Quards'), badgeEl),
-      el('div', { class: 'header-right' }, el('label', {}, 'IA ', levelSel), el('label', {}, 'Motor ', engineSel), newBtn)),
+      el('div', { class: 'header-right' },
+        el('label', { class: 'toggle', title: 'Resaltar las cartas que podrían jugarse' }, markCb, 'Jugables'),
+        el('label', {}, 'IA ', levelSel), el('label', {}, 'Motor ', engineSel), newBtn)),
     layout);
 
-  root.append(bg, crt, svg, app);
+  root.append(bg, crt, app);
   log(`Quards lista (motor ${quantum.kind()}).`);
   await render();
   scheduleAI();
