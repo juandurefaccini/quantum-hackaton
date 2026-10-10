@@ -22,7 +22,7 @@ Cuando una decisión contradice a `idea.md`, la de acá gana y `idea.md` se anot
 | Carta externa | Sale **del mazo**, colapsada al vuelo | No hay pila externa aparte |
 | Colapso | Pasa por el **adaptador cuántico**: `backend` → `qiskit-source.js`; si no → `fake-source.js` (statevector local) | El reducer **no mide**: recibe el resultado y transiciona |
 | Mazo | Caras 4 colores × 0–9. **38 qubit** + **12 acciones UNO** = **50** (sin compuertas/entrelazamiento) · **mano inicial 7 qubit** | Prototipo "UNO completo" |
-| Acciones UNO | **Clásico 2p**: skip = el rival pierde su turno; reverse = en 2 jugadores equivale a skip; +2 = el rival roba 2 (colapsadas) | Cartas de **color** (una sola cara), match por color o símbolo |
+| Acciones UNO | **Clásico 2p**: skip = el rival pierde su turno; reverse = en 2 jugadores equivale a skip; +2 = el rival roba 2 (colapsadas) y pierde el turno | Cartas de **color** (una sola cara), match por color o símbolo |
 | Carta colapsada | Es una carta UNO normal: jugable si matchea; **no** recibe compuertas ni se entrelaza | Confirma puntos 1–2 de `idea.md` |
 | Acciones consumen turno | Solo **jugar/robar** y las **acciones UNO** cierran el turno; compuertas y entrelazamiento son **preparación libre** | Reemplaza el punto 3 de `idea.md` |
 | Alcance | **1v1 humano vs IA, sin servidor**. El motor queda desacoplado para moverlo a servidor | Multijugador = fase futura |

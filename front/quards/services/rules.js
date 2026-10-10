@@ -108,7 +108,7 @@ function resolvePlay(state, cardId, face) {
   const sym = face.symbol;
   let skip = false;
   if (sym === 'skip' || sym === 'reverse') skip = true;
-  if (sym === 'draw2') drawCards(state, 1 - player, 2);
+  if (sym === 'draw2') { drawCards(state, 1 - player, 2); skip = true; }
   if (sym === 'wild4') { drawCards(state, 1 - player, 4); skip = true; }
 
   log(state, `${p.name} jugó ${describeFace(face)} (válida)${isWild(face) ? ` → color ${COLOR_ES[state.activeColor]}` : ''}`);

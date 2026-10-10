@@ -45,8 +45,8 @@ falla. Por eso `services/quantum.js` importa los adaptadores de forma estática 
   o si es comodín. Al jugarla se **mide** (colapsa el grupo): si la cara coincide es **válida** (va al
   descarte y aplica su efecto); si no, es **inválida** (queda en tu mano colapsada y robás una).
 - Cerrás el turno al **jugar** una carta; **robás** solo si no podés jugar.
-- **Efectos**: skip/reverse (el rival pierde el turno), +2 (el rival roba 2), comodín (elegís color),
-  +4 (elegís color y el rival roba 4).
+- **Efectos**: skip/reverse (el rival pierde el turno), +2 (el rival roba 2 y pierde el turno), comodín (elegís color),
+  +4 (elegís color y el rival roba 4 y pierde el turno).
 - Para jugar: **seleccioná** la carta y **arrastrala al descarte** (o clickeá el descarte).
 - Gana quien se queda **sin cartas**. El colapso lo decide el motor cuántico.
 

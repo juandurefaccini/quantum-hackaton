@@ -39,7 +39,7 @@ juegan matcheando color o símbolo:
 | :-- | :-- |
 | **Skip** | El rival pierde su turno. |
 | **Reverse** | En 2 jugadores equivale a **Skip** (volvés a jugar). |
-| **+2** | El rival roba 2 cartas (colapsadas del mazo). |
+| **+2** | El rival roba 2 cartas (colapsadas del mazo) y pierde el turno. |
 
 ## Dónde está la estrategia
 
