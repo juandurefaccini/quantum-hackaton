@@ -136,6 +136,7 @@ tests corren con el motor de referencia local, así que el stub (que lanza) nunc
 ```
 .
 ├── index.html          ENTRY del repo (raíz) · monta el juego en #root
+├── main.css            estilos del juego (raíz)
 ├── main.js             ENTRY del repo (raíz) · importa front/quards/main.js
 ├── README.md
 ├── docs/               idea · decisions · plan

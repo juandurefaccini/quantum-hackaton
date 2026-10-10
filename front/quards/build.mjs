@@ -18,7 +18,7 @@ const DIRS = ['services', 'ui', 'back'];
 rmSync(TMP, { recursive: true, force: true });
 mkdirSync(TMP, { recursive: true });
 
-for (const f of FILES) cpSync(join(HERE, f), join(TMP, f));
+for (const f of FILES) cpSync(join(f === 'main.css' ? ROOT : HERE, f), join(TMP, f));
 for (const d of DIRS) cpSync(d === 'back' ? join(ROOT, d) : join(HERE, d), join(TMP, d), { recursive: true });
 mkdirSync(join(TMP, 'quantum'), { recursive: true });
 cpSync(join(HERE, 'quantum/qiskit-stub.js'), join(TMP, 'quantum/qiskit-stub.js'));
