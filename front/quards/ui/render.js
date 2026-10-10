@@ -8,6 +8,8 @@ import * as audio from './audio.js';
 import { log, warn } from './debug.js';
 import { entangledGroupOf, orderHand } from './entangle.js';
 import { mountQard } from './qard.js';
+import { showCircuitTip, hideCircuitTip } from './circuit.js';
+import { playCollapse } from './collapse.js';
 
 const SYM = { skip: '⊘', reverse: '⇄', draw2: '+2', wild: '★', wild4: '+4' };
 const GATE_HINT = {
@@ -171,13 +173,27 @@ export async function mount(root) {
         prob0: Math.round((p?.[0] ?? 0.5) * 100),
       });
     }
+    if (c.group) {
+      const g = state.groups[c.group];
+      const show = () => showCircuitTip(node, g);
+      node.addEventListener('pointerenter', show);
+      node.addEventListener('focus', show);
+      node.addEventListener('pointerleave', hideCircuitTip);
+      node.addEventListener('blur', hideCircuitTip);
+    }
     if (opts.onPointerDown) node.addEventListener('pointerdown', event => opts.onPointerDown(id, event));
     return node;
+  }
+
+  // Probabilidad de la primera cara, para la carta fantasma del colapso.
+  async function prob0Of(id) {
+    try { const p = await probsFor(id); return Math.round((p?.[0] ?? 0.5) * 100); } catch { return 50; }
   }
 
   // ---------- flujo ----------
   async function doPlay(id) {
     if (!isHumanTurn() || !rules.canPlay(state, id)) return;
+    hideCircuitTip();
     audio.blip();
     const r = rules.play(state, id);
     selectedId = null; pendingGate = null;
@@ -185,8 +201,14 @@ export async function mount(root) {
     if (r.needsMeasure) {
       log(`Midiendo con ${quantum.kind()}…`);
       await render();
-      try { rules.resolveMeasure(state, await quantum.medirGrupo(r.needsMeasure)); }
-      catch (error) { warn(`medición falló: ${error?.message ?? error}`); }
+      try {
+        const bits = await playCollapse({
+          state, group: r.needsMeasure, cardId: id,
+          bitsPromise: quantum.medirGrupo(r.needsMeasure),
+          symOf, prob0: await prob0Of(id),
+        });
+        rules.resolveMeasure(state, bits);
+      } catch (error) { warn(`medición falló: ${error?.message ?? error}`); }
     }
     await render();
     if (state.phase === 'over') audio.runChord(); else scheduleAI();
@@ -228,6 +250,7 @@ export async function mount(root) {
 
   function startPress(id, event) {
     if (!isHumanTurn()) return;
+    hideCircuitTip();
     press = { id, el: event.currentTarget, startX: event.clientX, startY: event.clientY, active: false, ghost: null };
   }
   function isOver(event, node) {
@@ -291,7 +314,17 @@ export async function mount(root) {
       else if (action.type === 'draw') { rules.draw(state); stepMs = AI_PLAY_MS; }
       else {
         const r = rules.play(state, action.cardId);
-        if (r.needsMeasure) { try { rules.resolveMeasure(state, await quantum.medirGrupo(r.needsMeasure)); } catch (e) { warn(`medición IA: ${e?.message ?? e}`); } }
+        if (r.needsMeasure) {
+          await render();
+          try {
+            const bits = await playCollapse({
+              state, group: r.needsMeasure, cardId: action.cardId,
+              bitsPromise: quantum.medirGrupo(r.needsMeasure),
+              symOf, prob0: await prob0Of(action.cardId),
+            });
+            rules.resolveMeasure(state, bits);
+          } catch (e) { warn(`medición IA: ${e?.message ?? e}`); }
+        }
         stepMs = AI_PLAY_MS;
       }
       await render();
@@ -303,6 +336,7 @@ export async function mount(root) {
 
   // ---------- render ----------
   async function render() {
+    hideCircuitTip();
     const prevHandRects = new Map();
     handEl.querySelectorAll('.card').forEach(node => prevHandRects.set(node.dataset.id, node.getBoundingClientRect()));
     const me = state.players[0], opp = state.players[1];

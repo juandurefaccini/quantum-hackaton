@@ -272,3 +272,101 @@ section { position: relative; }
 .chip.gate-h { background: #1f7a5e; }
 .chip.gate-cnot { background: #7a5a1f; }
 .hand.mine { justify-content: center; padding-top: 2px; gap: 6px; --card-w: calc(var(--card-base-w) * 2); }
+
+/* --- circuito cuántico en hover --- */
+.circuit-tip {
+  position: fixed; z-index: 260; pointer-events: none;
+  background: rgba(12, 11, 10, 0.96);
+  border: 2px solid var(--edge);
+  box-shadow: 3px 3px 0 var(--edge), 0 0 18px rgba(34, 179, 160, 0.28);
+  border-radius: 4px;
+  padding: 8px 10px 6px;
+  animation: tip-in 0.14s ease-out both;
+}
+.circuit-tip::before {
+  content: ""; position: absolute; left: var(--caret-x, 50%); transform: translateX(-50%);
+  bottom: -7px; width: 0; height: 0;
+  border-left: 7px solid transparent; border-right: 7px solid transparent;
+  border-top: 7px solid var(--edge);
+}
+.circuit-tip.below::before {
+  bottom: auto; top: -7px; border-top: 0; border-bottom: 7px solid var(--edge);
+}
+.circuit-tip .circuit-tip-label {
+  display: block; margin-top: 6px; font-size: 10px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--teal); text-align: center;
+}
+@keyframes tip-in { from { opacity: 0; transform: translateY(4px) scale(0.97); } to { opacity: 1; transform: none; } }
+
+.qc-svg { display: block; }
+.qc-svg .qc-wire { stroke: rgba(244, 237, 224, 0.42); stroke-width: 1.5; }
+.qc-svg .qc-wire-gate { stroke: #e6b23a; stroke-width: 2; }
+.qc-svg .qc-label { fill: var(--muted); font-size: 9px; font-family: ui-monospace, monospace; }
+.qc-svg .qc-gate-txt { fill: #fff; font-size: 11px; font-weight: 700; text-anchor: middle; font-family: ui-monospace, monospace; }
+.qc-svg .qc-bit { fill: var(--teal); font-size: 12px; font-weight: 700; font-family: ui-monospace, monospace; }
+
+/* --- animación de medición (colapso) --- */
+.collapse-fx {
+  position: fixed; z-index: 265; pointer-events: none;
+  width: var(--card-w); aspect-ratio: 5 / 7;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 22px rgba(34, 179, 160, 0.35));
+}
+.collapse-fx .cc-stage { position: absolute; inset: 0; perspective: 700px; }
+.collapse-fx .cc-card {
+  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0;
+  transition: transform 0.3s ease;
+}
+.collapse-fx.measuring .cc-card { transform: scale(1.05); }
+
+.collapse-fx .cc-card .half-0 { clip-path: polygon(0 0, 100% 0, 0 100%, 0 100%); transition: clip-path 0.62s cubic-bezier(0.7, 0, 0.3, 1), opacity 0.5s ease; }
+.collapse-fx .cc-card .half-1 { clip-path: polygon(100% 0, 100% 100%, 0 100%, 0 100%); transition: clip-path 0.62s cubic-bezier(0.7, 0, 0.3, 1), opacity 0.5s ease; }
+.collapse-fx .cc-card .sym { transition: opacity 0.4s ease; }
+
+.collapse-fx.to-0 .cc-card .half-0 { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+.collapse-fx.to-0 .cc-card .half-1 { clip-path: polygon(0 0, 0 0, 0 0, 0 0); opacity: 0; }
+.collapse-fx.to-0 .cc-card .sym-1 { opacity: 0; }
+.collapse-fx.to-1 .cc-card .half-1 { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+.collapse-fx.to-1 .cc-card .half-0 { clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%); opacity: 0; }
+.collapse-fx.to-1 .cc-card .sym-0 { opacity: 0; }
+
+.collapse-fx .cc-scan {
+  position: absolute; left: -4%; right: -4%; height: 16%; top: -20%;
+  background: linear-gradient(to bottom, rgba(34, 179, 160, 0), rgba(34, 179, 160, 0.85), rgba(34, 179, 160, 0));
+  box-shadow: 0 0 18px rgba(34, 179, 160, 0.7);
+  border-radius: 50%; opacity: 0;
+}
+.collapse-fx.measuring .cc-scan { opacity: 1; animation: cc-scan 0.9s linear infinite; }
+@keyframes cc-scan { 0% { top: -20%; } 100% { top: 104%; } }
+
+.collapse-fx .cc-kets { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.collapse-fx .cc-ket {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-family: ui-monospace, monospace; font-size: calc(var(--card-w) * 0.34);
+  font-weight: 700; color: #fff; opacity: 0;
+  text-shadow: 0 0 12px rgba(34, 179, 160, 0.9), 3px 3px 0 var(--edge);
+}
+.collapse-fx.measuring .ket0 { animation: cc-flick 0.46s steps(1) infinite; }
+.collapse-fx.measuring .ket1 { animation: cc-flick 0.46s steps(1) infinite; animation-delay: -0.23s; }
+@keyframes cc-flick { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+.collapse-fx .cc-result {
+  position: absolute; inset: 0; display: grid; place-items: center; z-index: 6;
+  font-family: ui-monospace, monospace; font-size: calc(var(--card-w) * 0.44);
+  font-weight: 700; color: #fff; opacity: 0; transform: scale(0.3);
+  text-shadow: 0 0 16px rgba(34, 179, 160, 1), 3px 3px 0 var(--edge);
+  transition: opacity 0.22s ease 0.28s, transform 0.4s cubic-bezier(0.2, 1.6, 0.4, 1) 0.28s;
+}
+.collapse-fx.collapsing .cc-result { opacity: 1; transform: scale(1); }
+
+.collapse-fx .cc-caption {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: -1.9em;
+  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--teal); white-space: nowrap; text-shadow: 0 1px 0 var(--edge);
+}
+
+.collapse-fx.collapsing .cc-stage::after {
+  content: ""; position: absolute; inset: -6%; border: 2px solid var(--teal); border-radius: 10px;
+  animation: cc-ring 0.6s ease-out forwards; pointer-events: none;
+}
+@keyframes cc-ring { from { opacity: 0.9; transform: scale(0.9); } to { opacity: 0; transform: scale(1.25); } }
