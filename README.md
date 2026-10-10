@@ -91,6 +91,25 @@ http://localhost:8000/cards/index.html            # cartas cuánticas + clásica
 > Se sirven por HTTP (no abrir con `file://`): al usar ES modules, el navegador bloquea los
 > imports por CORS sobre el sistema de archivos.
 
+## Empaquetar el proyecto
+
+`utils/zip.js` arma un zip con **todo el proyecto**. No tiene dependencias: el contenedor ZIP se
+escribe con `node:zlib` (deflate crudo) + CRC32, así que no necesita el binario `zip` ni
+`npm install`.
+
+```bash
+node utils/zip.js                      # -> quantum-hackaton.zip en la raíz del repo
+node utils/zip.js --out dist/app.zip   # elegir la ruta de salida
+```
+
+- Busca la raíz con `git rev-parse --show-toplevel` (si no hay git, usa el directorio actual).
+- Ignora `node_modules`, `.git`, `.atl`, `dist`, `build`, `.venv`, `venv`, `.idea`, `.vscode`, y
+  los archivos `.DS_Store`, `*.log` y `*.zip`.
+- Salida por defecto: `quantum-hackaton.zip` en la raíz del repo.
+
+> Para el bundle de **solo la app** en formato plano de Qollab (`front/quards.zip`) usá
+> `node front/quards/build.mjs`.
+
 ## Tests
 
 Desde la raíz del repo:
@@ -122,7 +141,8 @@ tests corren con el motor de referencia local, así que el stub (que lanza) nunc
 │   └── quantum/        qiskit.js · referencia.js
 ├── front/
 │   └── quards/         APP PRINCIPAL (dev-server, tests, ui, services)
-└── cards/              prototipos de cartas (index · card_final)
+├── cards/              prototipos de cartas (index · card_final)
+└── utils/zip.js        empaquetador del proyecto (zip sin dependencias)
 ```
 
 ## Licencia
