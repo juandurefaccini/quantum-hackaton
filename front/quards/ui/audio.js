@@ -29,7 +29,7 @@ function tone(freq, dur, type = 'square', vol = 0.05, delay = 0) {
 }
 
 export const blip = () => tone(520, 0.06, 'square', 0.045);
-export const tick = () => tone(320, 0.04, 'triangle', 0.028);
+export const tick = (delay = 0) => tone(320, 0.04, 'triangle', 0.028, delay);
 export const runChord = () => [392, 523, 659, 880].forEach((f, i) => tone(f, 0.4, 'sawtooth', 0.035, i * 0.05));
 
 export function collapseSweep() {

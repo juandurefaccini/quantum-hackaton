@@ -43,11 +43,13 @@ function loadFlag(key, fallback = true) {
   try { const v = localStorage.getItem(key); return v === null ? fallback : v === '1'; } catch { return fallback; }
 }
 
+// Respeta la preferencia de movimiento reducido del sistema.
+const motionOff = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
 // FLIP: anima las cartas que cambiaron de posición en la mano (p.ej. al entrelazarse).
 // Se ignoran los desplazamientos chicos (selección/hover) con un umbral.
 function animateHandMoves(prevRects, container) {
-  if (!prevRects.size) return;
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  if (!prevRects.size || motionOff()) return;
   const THRESHOLD = 20;
   for (const node of container.querySelectorAll('.card')) {
     const prev = prevRects.get(node.dataset.id);
@@ -63,30 +65,43 @@ function animateHandMoves(prevRects, container) {
   }
 }
 
-// Anima cartas robadas: vuelan del mazo a la mano destino (carta boca abajo).
-function flyCards(deckEl, targetEl, count) {
-  if (count <= 0) return;
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+// Carta fantasma boca abajo que vuela del mazo a un rect destino. Devuelve la Animation.
+function spawnFlyingCard(deckEl, targetRect, { delay = 0, duration = 420, scaleEnd = 0.85, width, onFinish } = {}) {
+  if (motionOff()) return null;
   const from = deckEl.getBoundingClientRect();
-  const to = targetEl.getBoundingClientRect();
-  if (!from.width || !to.width) return;
+  if (!from.width || !targetRect?.width) return null;
   const fx = from.left + from.width / 2;
   const fy = from.top + from.height / 2;
-  const dx = to.left + to.width / 2 - fx;
-  const dy = to.top + to.height / 2 - fy;
-  for (let i = 0; i < count; i++) {
-    const ghost = el('div', { class: 'card facedown back fly' });
-    ghost.style.left = `${fx}px`;
-    ghost.style.top = `${fy}px`;
-    document.body.append(ghost);
-    ghost.animate(
-      [
-        { transform: 'translate(-50%, -50%) scale(1) rotate(-6deg)', opacity: 1 },
-        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(0.85) rotate(6deg)`, opacity: 0.85 },
-      ],
-      { duration: 420, delay: i * 90, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'forwards' },
-    ).onfinish = () => ghost.remove();
+  const dx = targetRect.left + targetRect.width / 2 - fx;
+  const dy = targetRect.top + targetRect.height / 2 - fy;
+  const ghost = el('div', { class: 'card facedown back fly' });
+  if (width) {
+    ghost.style.setProperty('--card-w', `${width}px`);
+    ghost.style.setProperty('--qard-w', `${width}px`);
+    ghost.style.width = `${width}px`;
   }
+  ghost.style.position = 'fixed';
+  ghost.style.left = `${fx}px`;
+  ghost.style.top = `${fy}px`;
+  ghost.style.transform = 'translate(-50%, -50%)';
+  document.body.append(ghost);
+  const anim = ghost.animate(
+    [
+      { transform: 'translate(-50%, -50%) scale(1) rotate(-6deg)', opacity: 1 },
+      { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${scaleEnd}) rotate(6deg)`, opacity: 0.85 },
+    ],
+    { duration, delay, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)', fill: 'forwards' },
+  );
+  anim.onfinish = () => { ghost.remove(); onFinish?.(); };
+  return anim;
+}
+
+// Anima cartas robadas: vuelan del mazo a la mano destino (carta boca abajo).
+function flyCards(deckEl, targetEl, count) {
+  if (count <= 0 || motionOff()) return;
+  const to = targetEl.getBoundingClientRect();
+  if (!to.width) return;
+  for (let i = 0; i < count; i++) spawnFlyingCard(deckEl, to, { delay: i * 90 });
 }
 
 export async function mount(root) {
@@ -187,7 +202,6 @@ export async function mount(root) {
       mountQard(node, { kind: 'classic', color: grad(c.face), symbol: symOf(c.face) });
     } else {
       const p = await probsFor(id);
-      node.classList.add('super');
       mountQard(node, {
         kind: 'quantum',
         color0: grad(c.outcomes[0]), sym0: symOf(c.outcomes[0]),
@@ -213,11 +227,81 @@ export async function mount(root) {
     try { const p = await probsFor(id); return Math.round((p?.[0] ?? 0.5) * 100); } catch { return 50; }
   }
 
+  // Anima la carta jugada: vuela desde su posición al descarte. `ghost` es un clon
+  // de la carta real (con la cara); si falta, se usa una carta boca abajo.
+  function flyToDiscard(fromRect, ghost) {
+    if (motionOff() || !fromRect?.width) return;
+    const to = discardEl.getBoundingClientRect();
+    if (!to.width) return;
+    const node = ghost || el('div', { class: 'card facedown back' });
+    node.removeAttribute('data-id');
+    node.classList.remove('playable', 'selected', 'dragging', 'drop-target');
+    node.classList.add('fly');
+    node.style.position = 'fixed';
+    node.style.setProperty('--card-w', `${fromRect.width}px`);
+    node.style.setProperty('--qard-w', `${fromRect.width}px`);
+    node.style.width = `${fromRect.width}px`;
+    node.style.left = `${fromRect.left + fromRect.width / 2}px`;
+    node.style.top = `${fromRect.top + fromRect.height / 2}px`;
+    node.style.transform = 'translate(-50%, -50%)';
+    const top = discardEl.querySelector('.card');
+    const dx = to.left + to.width / 2 - (fromRect.left + fromRect.width / 2);
+    const dy = to.top + to.height / 2 - (fromRect.top + fromRect.height / 2);
+    const scale = Math.max(0.3, to.width / fromRect.width);
+    document.body.append(node);
+    if (top) top.style.opacity = '0';
+    node.animate(
+      [
+        { transform: 'translate(-50%, -50%) scale(1) rotate(-5deg)' },
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${scale}) rotate(2deg)` },
+      ],
+      { duration: 320, easing: 'cubic-bezier(0.25, 0.8, 0.25, 1)', fill: 'forwards' },
+    ).onfinish = () => {
+      node.remove();
+      if (top) top.style.opacity = '';
+    };
+  }
+
+  // Reparto inicial: las cartas vuelan del mazo a cada mano, alternando jugador/IA.
+  async function dealAnimation() {
+    if (motionOff()) return;
+    const oppCards = [...oppHandEl.querySelectorAll('.card')];
+    const meCards = [...handEl.querySelectorAll('.card')];
+    const n = Math.max(oppCards.length, meCards.length);
+    if (!n) return;
+    const step = 120;
+    const all = [...oppCards, ...meCards];
+    all.forEach(node => { node.style.opacity = '0'; });
+    const jobs = [];
+    let delay = 0;
+    for (let i = 0; i < n; i++) {
+      if (oppCards[i]) jobs.push({ node: oppCards[i], delay });
+      delay += step;
+      if (meCards[i]) jobs.push({ node: meCards[i], delay });
+      delay += step;
+    }
+    for (const job of jobs) {
+      const rect = job.node.getBoundingClientRect();
+      audio.tick(job.delay / 1000);
+      spawnFlyingCard(deckEl, rect, {
+        delay: job.delay,
+        width: rect.width,
+        scaleEnd: 1,
+        onFinish: () => { job.node.style.opacity = ''; },
+      });
+    }
+    await sleep(delay + 460);
+    all.forEach(node => { node.style.opacity = ''; });
+  }
+
   // ---------- flujo ----------
   async function doPlay(id) {
     if (!isHumanTurn() || !rules.canPlay(state, id)) return;
     hideCircuitTip();
     audio.blip();
+    const srcNode = handEl.querySelector(`[data-id="${id}"]`);
+    const srcRect = srcNode ? srcNode.getBoundingClientRect() : null;
+    const ghost = srcNode ? srcNode.cloneNode(true) : null;
     const r = rules.play(state, id);
     selectedId = null; pendingGate = null;
     if (r.error) { await render(); return; }
@@ -234,6 +318,7 @@ export async function mount(root) {
       } catch (error) { warn(`medición falló: ${error?.message ?? error}`); }
     }
     await render();
+    if (state.discard[state.discard.length - 1] === id) flyToDiscard(srcRect, ghost);
     if (state.phase === 'over') audio.runChord(); else scheduleAI();
   }
 
@@ -319,7 +404,13 @@ export async function mount(root) {
   drawBtn.addEventListener('click', async () => { if (isHumanTurn() && !rules.hasMove(state)) { audio.blip(); rules.draw(state); await render(); scheduleAI(); } });
   levelSel.addEventListener('change', () => { level = levelSel.value; });
   engineSel.addEventListener('change', () => { quantum.setEngine(engineSel.value); log(`motor → ${engineSel.value}`); render(); });
-  newBtn.addEventListener('click', () => { state = rules.newGame({ seed: Date.now() % 100000 }); lastCounts = { me: state.players[0].hand.length, opp: state.players[1].hand.length }; pendingGate = null; selectedId = null; busy = false; render(); });
+  newBtn.addEventListener('click', async () => {
+    state = rules.newGame({ seed: Date.now() % 100000 });
+    lastCounts = { me: state.players[0].hand.length, opp: state.players[1].hand.length };
+    pendingGate = null; selectedId = null; busy = false;
+    await render();
+    dealAnimation();
+  });
 
   function scheduleAI() {
     if (state.phase !== 'play' || state.turn.current !== 1) return;
@@ -333,9 +424,12 @@ export async function mount(root) {
       const action = await chooseAction(state, 1, level);
       if (!action) break;
       let stepMs = AI_PREP_MS;
+      let played = null; // { id, rect }: la carta que la IA juega al descarte
       if (action.type === 'gate') rules.applyGate(state, action.gate, action.a, action.b);
       else if (action.type === 'draw') { rules.draw(state); stepMs = AI_PLAY_MS; }
       else {
+        const srcNode = oppHandEl.querySelector('.card');
+        const rect = srcNode ? srcNode.getBoundingClientRect() : null;
         const r = rules.play(state, action.cardId);
         if (r.needsMeasure) {
           await render();
@@ -348,9 +442,11 @@ export async function mount(root) {
             rules.resolveMeasure(state, bits);
           } catch (e) { warn(`medición IA: ${e?.message ?? e}`); }
         }
+        played = { id: action.cardId, rect };
         stepMs = AI_PLAY_MS;
       }
       await render();
+      if (played && state.discard[state.discard.length - 1] === played.id) flyToDiscard(played.rect, null);
       await sleep(stepMs);
     }
     busy = false; await render();
@@ -466,5 +562,6 @@ export async function mount(root) {
   root.append(bg, crt, app);
   log(`Quards lista (motor ${quantum.kind()}).`);
   await render();
+  await dealAnimation();
   scheduleAI();
 }
