@@ -3,6 +3,13 @@
 Registro de las decisiones de diseño resueltas (fuente: `idea.md` + definiciones del equipo).
 Cuando una decisión contradice a `idea.md`, la de acá gana y `idea.md` se anota.
 
+> **Integración con el back (2026-10):** el juego final pasó a usar el **motor del back**
+> (`back/estado.js` + `back/quantum/qiskit.js`) a través de una capa de **servicios**
+> (`front/quards/services/`). Eso cambia el modelo respecto de lo de abajo: las puertas (X/Z/H/**CNOT**)
+> **no son cartas** (van en `player.gates`, otorgadas por turno), el mazo es de **108 cartas** (con
+> comodines), el entrelazamiento es un **CNOT**, y la **victoria es mano vacía**. Ver
+> `front/quards/README.md` y `DESIGN.md`. Las filas siguientes quedan como registro histórico.
+
 | Tema | Decisión | Consecuencia |
 | :-- | :-- | :-- |
 | Ubicación | App nueva en `front/quards/`, reusando `quantum/` y `collapse/` del probe `front/quards-quantum-lab/` | Los zips de Qollab son autocontenidos: no se comparte código entre apps |
