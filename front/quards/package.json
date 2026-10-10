@@ -1,4 +1,8 @@
 {
   "type": "module",
-  "private": true
+  "private": true,
+  "scripts": {
+    "dev": "node dev-server.mjs",
+    "test": "node --import ./tests/qiskit-hooks.mjs --test tests/services.test.js"
+  }
 }

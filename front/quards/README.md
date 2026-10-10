@@ -60,7 +60,7 @@ falla. Por eso `services/quantum.js` importa los adaptadores de forma estática 
 | `back/` | MOTOR del back (se importa): `estado.js`, `quantum/qiskit.js`, `quantum/referencia.js` |
 | `ui/` | `render.js` (DOM), `entangle.js` (líneas), `background.js` (WebGL 320×180), `audio.js`, `debug.js` |
 | `quantum/qiskit-stub.js` | stub de `qiskit`/`qiskit.quantum_info` para dev (import map) |
-| `tests/` | `node --test tests/services.test.js` (fuera del zip) |
+| `tests/` | `npm test` (`qiskit-hooks.mjs` mapea `qiskit` al stub; fuera del zip) |
 | `dev-server.mjs` | server local + proxy IonQ (fuera del zip) |
 | `build.mjs` | arma `quards.zip` (app plana + `back/`, reescribe `../../../back/`→`../back/`) |
 
