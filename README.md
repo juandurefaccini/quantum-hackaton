@@ -21,8 +21,9 @@ cuántico** (simulador local, Qiskit o IonQ).
 
 ## Cómo levantar la app
 
-La app principal está en `front/quards/`. Se sirve con un **dev-server** incluido que, además de
-servir el repo, **proxya IonQ** (para que el browser no llame directo a la API ni exponga la key).
+El **punto de entrada está en la raíz**: `index.html` + `main.js` montan la app (que vive en
+`front/quards/`) dentro de `#root`. Se sirve con un **dev-server** incluido que, además de servir
+el repo, **proxya IonQ** (para que el browser no llame directo a la API ni exponga la key).
 
 Desde la raíz del repo:
 
@@ -36,7 +37,7 @@ Luego abrir:
 http://localhost:8000
 ```
 
-`/` redirige a `http://localhost:8000/front/quards/dev.html`, que monta el juego.
+`/` redirige a `/index.html`, el entry raíz, que monta el juego.
 
 El server también acepta:
 
@@ -134,6 +135,8 @@ tests corren con el motor de referencia local, así que el stub (que lanza) nunc
 
 ```
 .
+├── index.html          ENTRY del repo (raíz) · monta el juego en #root
+├── main.js             ENTRY del repo (raíz) · importa front/quards/main.js
 ├── README.md
 ├── docs/               idea · decisions · plan
 ├── back/               motor del juego (estado.js) + capa cuántica (quantum/)

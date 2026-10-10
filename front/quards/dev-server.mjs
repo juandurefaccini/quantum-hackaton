@@ -75,7 +75,7 @@ const server = createServer(async (req, res) => {
   }
 
   // Estático
-  if (url.pathname === '/') { res.writeHead(302, { Location: '/front/quards/dev.html' }); return res.end(); }
+  if (url.pathname === '/') { res.writeHead(302, { Location: '/index.html' }); return res.end(); }
   const filePath = resolve(join(ROOT, decodeURIComponent(url.pathname)));
   if (!filePath.startsWith(ROOT + sep) && filePath !== ROOT) return send(res, 403, 'forbidden');
   if (!existsSync(filePath) || !statSync(filePath).isFile()) return send(res, 404, 'not found');
@@ -84,6 +84,7 @@ const server = createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Quards dev-server en http://localhost:${PORT}`);
-  console.log(`  app:   http://localhost:${PORT}/front/quards/dev.html`);
+  console.log(`  app:   http://localhost:${PORT}/            (entry raíz: index.html + main.js)`);
+  console.log(`  dev:   http://localhost:${PORT}/front/quards/dev.html`);
   console.log(`  IonQ:  ${KEY ? 'proxy ACTIVO (key cargada)' : 'sin key (usá --env o --key)'}  [${ENV_PATH}]`);
 });
