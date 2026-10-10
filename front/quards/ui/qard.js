@@ -59,12 +59,14 @@ export const QARD_CSS = `
     pointer-events: none;
   }
 
-  /* GRADIENTES COMPILADOS EN CSS */
-  .qard-card .grad-red    { background: radial-gradient(circle at 30% 30%, #e53935 0%, #5e1212 100%); }
-  .qard-card .grad-blue   { background: radial-gradient(circle at 30% 30%, #1e28e5 0%, #12056f 100%); }
-  .qard-card .grad-green  { background: radial-gradient(circle at 30% 30%, #33b435 0%, #1f5b17 100%); }
-  .qard-card .grad-yellow { background: radial-gradient(circle at 30% 30%, #fff458 0%, #b19a09 100%); }
-  .qard-card .grad-grey   { background: radial-gradient(circle at 30% 30%, #2c2130 0%, #0d1117 100%); }
+  /* GRADIENTES COMPILADOS EN CSS — alineados a la paleta de la app
+     (rojo #e0463a · azul #3a7bd5 · verde #2fae6a · dorado #e6b23a), con
+     remates oscurecidos del mismo tono en vez de primarios saturados. */
+  .qard-card .grad-red    { background: radial-gradient(circle at 30% 30%, #e0463a 0%, #5a1c17 100%); }
+  .qard-card .grad-blue   { background: radial-gradient(circle at 30% 30%, #3a7bd5 0%, #16305e 100%); }
+  .qard-card .grad-green  { background: radial-gradient(circle at 30% 30%, #2fae6a 0%, #14502f 100%); }
+  .qard-card .grad-yellow { background: radial-gradient(circle at 30% 30%, #e6b23a 0%, #6f5314 100%); }
+  .qard-card .grad-grey   { background: radial-gradient(circle at 30% 30%, #2b2620 0%, #0d1117 100%); }
 
   /* SÍMBOLOS CENTRALES */
   .qard-card .symbols-layer { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
