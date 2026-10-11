@@ -10,6 +10,8 @@ Un paseo por las cuatro ideas cuánticas que Qards usa, con el lenguaje del jueg
 
 ## 1. Superposición: la carta que es dos cartas
 
+![Una carta cuántica y su colapso al jugarla](../assets/diagrams/measure-es.png)
+
 En un juego de descarte clásico una carta **es** un color y un número. En Qards una **carta cuántica** tiene **dos caras
 posibles** a la vez: por ejemplo, *Rojo 5* y *Azul 2*. No es que "todavía no sabés cuál es" — la
 carta realmente **es las dos**, con un peso (una probabilidad) para cada cara.
@@ -48,6 +50,16 @@ correlacionados**: no importa qué le pase a una sin arrastrar a la otra.
   podrían reproducir con **azar clásico compartido** (un modelo de variables ocultas para ese conjunto
   restringido de mediciones). Lo que el juego sí explota y no tiene análogo clásico es la **fase**
   (sección 4).
+
+**Con números** (control 50/50, target 90% `|0⟩` / 10% `|1⟩`):
+
+| Momento | Control | Target |
+| :-- | :-- | :-- |
+| Antes de medir | 50 / 50 | 90 / 10 |
+| Medís el control → sale `\|0⟩` (50%) | — | **90% `\|0⟩`** |
+| Medís el control → sale `\|1⟩` (50%) | — | **90% `\|1⟩`** |
+
+O sea: medir una carta **fija** la otra al mismo bit. Por eso entrelazar **liga las suertes**.
 
 Estratégicamente, un **CNOT** puede preparar **dos** cartas con una sola jugada — el "ahorro" que
 menciona la spec.
