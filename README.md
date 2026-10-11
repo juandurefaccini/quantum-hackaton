@@ -42,6 +42,18 @@ You vs. AI, heads-up. **First to empty their hand wins** (gates/cards of other k
 
 Full rules (Spanish): [`docs/idea.md`](docs/idea.md).
 
+```mermaid
+flowchart TD
+  P["Play a card"] --> C{"has a face?"}
+  C -->|yes| R["resolve the play"]
+  C -->|no| M["phase = measuring; medirGrupo(group)"]
+  M --> RM["resolveMeasure(bits)"]
+  RM --> R
+  R --> V{"matches the discard?"}
+  V -->|yes| OK["valid: to discard + effect"]
+  V -->|no| BAD["invalid: stays collapsed + draw 1"]
+```
+
 ## Shaping the odds: favorable plays with gates
 
 Before you play a card you can spend gates — they are free and they don't measure. Each one changes
@@ -57,6 +69,18 @@ There are three levers:
 
 Rule of thumb: **`X` to get the other face, `H` to commit, `Z` before `H` to pick the side, `CNOT` to
 make a second card share the first card's fate.**
+
+```mermaid
+flowchart TD
+  Q{"What do you want?"} --> A["The other face"]
+  Q --> B["To commit"]
+  Q --> D["To link two cards"]
+  A --> AX["X: swaps the faces (20% to 80%)"]
+  B --> BF["Read the Fase line"]
+  BF --> H["H: at least 80% toward that face (50/50 to ~100%)"]
+  B --> BZ["Z then H: to the opposite face"]
+  D --> DC["CNOT: measuring one pins the other"]
+```
 
 **Play 1 — rescue a bad card with `X`.** Your card reads *Red 5* 20 % / *Blue 2* 80 %, and *Blue 2* is
 what matches the discard. Apply `X`: the faces swap, so *Blue 2* is now at 80 %. No luck involved.
@@ -85,6 +109,10 @@ Every number here comes from the game's reference simulator; `H·Z·H ≡ X` is 
 against Qiskit's `Statevector` (test suite and `examples/qards_circuit.py`).
 
 ## The quantum part
+
+![A quantum card collapsing when played](assets/diagrams/measure-en.png)
+
+*A quantum card holds two faces at once; playing it **measures** (collapses) it to one.*
 
 | Game piece | Quantum object | Where in the code |
 | :-- | :-- | :-- |
@@ -118,12 +146,6 @@ theta = math.atan2(math.sqrt(1 - 0.6**2), 0.6)    # z = 0.6  ->  P(0) = (1+z)/2 
 card = QuantumCircuit(1)
 card.ry(theta, 0)                                 # PREPARE: superposition of the two faces
 print(measure(card))                              # MEASURE: collapse to one face
-
-# An entangled pair: CNOT links two cards (only |00> and |11> appear).
-pair = QuantumCircuit(2)
-pair.ry(math.pi / 2, 0)                           # control card in an exact 50/50
-pair.cx(0, 1)                                     # ENTANGLE: control -> target
-print(measure(pair))
 ```
 
 Pinned dependencies: [`examples/requirements.txt`](examples/requirements.txt)
@@ -137,6 +159,16 @@ Pinned dependencies: [`examples/requirements.txt`](examples/requirements.txt)
 ## Engines
 
 The collapse goes through one port (`front/qards/services/quantum.js`) with three adapters:
+
+```mermaid
+flowchart TD
+  UI["UI: ui/render.js"] --> PORT["services/quantum.js (port)"]
+  PORT -->|exact probabilities| REF["reference (local)"]
+  PORT -->|exact probabilities| QK["qiskit: Statevector (Qollab)"]
+  PORT -->|measurement| REF
+  PORT -->|measurement| IONQ["ionq (local proxy)"]
+  PORT -->|measurement| QK
+```
 
 | Engine | When | Probabilities | Measurement | Status |
 | :-- | :-- | :-- | :-- | :-- |

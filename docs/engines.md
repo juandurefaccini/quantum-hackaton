@@ -3,6 +3,16 @@
 El colapso de las cartas es lo único que necesita un motor cuántico. Todo pasa por **un puerto** con
 tres adaptadores, elegidos por entorno: `front/qards/services/quantum.js`.
 
+```mermaid
+flowchart TD
+  UI["UI: ui/render.js"] --> PORT["services/quantum.js (puerto)"]
+  PORT -->|probabilidades exactas| REF["referencia (local)"]
+  PORT -->|probabilidades exactas| QK["qiskit: Statevector (Qollab)"]
+  PORT -->|medición| REF
+  PORT -->|medición| IONQ["ionq (proxy local)"]
+  PORT -->|medición| QK
+```
+
 ## El puerto
 
 `services/quantum.js` expone una sola interfaz:

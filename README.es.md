@@ -42,6 +42,18 @@ Vos vs. la IA, 1v1. **Gana quien se queda sin cartas en la mano** (las puertas n
 
 Reglas completas: [`docs/idea.md`](docs/idea.md).
 
+```mermaid
+flowchart TD
+  P["Jugar una carta"] --> C{"¿tiene cara?"}
+  C -->|sí| R["resolver la jugada"]
+  C -->|no| M["phase = measuring; medirGrupo(group)"]
+  M --> RM["resolveMeasure(bits)"]
+  RM --> R
+  R --> V{"¿coincide con el descarte?"}
+  V -->|sí| OK["válida: al descarte + efecto"]
+  V -->|no| BAD["inválida: queda colapsada + roba 1"]
+```
+
 ## Mover las probabilidades: jugadas favorables con puertas
 
 Antes de jugar una carta podés gastar puertas: son gratis y **no miden**. Cada una cambia el estado de
@@ -57,6 +69,18 @@ palancas:
 
 Regla práctica: **`X` para quedarte con la otra cara, `H` para comprometerte, `Z` antes de `H` para
 elegir el lado, `CNOT` para que una segunda carta comparta la suerte de la primera.**
+
+```mermaid
+flowchart TD
+  Q{"¿Qué querés?"} --> A["La otra cara"]
+  Q --> B["Comprometerte"]
+  Q --> D["Ligar dos cartas"]
+  A --> AX["X: intercambia las caras (20% a 80%)"]
+  B --> BF["Leé la línea Fase"]
+  BF --> H["H: al menos 80% hacia esa cara (50/50 a ~100%)"]
+  B --> BZ["Z y después H: a la cara opuesta"]
+  D --> DC["CNOT: medir una fija la otra"]
+```
 
 **Jugada 1 — rescatar una carta mala con `X`.** Tu carta dice *Rojo 5* 20 % / *Azul 2* 80 %, y *Azul 2*
 es lo que matchea el descarte. Aplicás `X`: las caras se dan vuelta y *Azul 2* queda al 80 %. Sin azar.
@@ -85,6 +109,10 @@ Todos los números salen del simulador de referencia del juego; además, `H·Z·
 el `Statevector` de Qiskit (la suite de tests y `examples/qards_circuit.py`).
 
 ## La parte cuántica
+
+![Una carta cuántica colapsando al jugarla](assets/diagrams/measure-es.png)
+
+*Una carta cuántica sostiene dos caras a la vez; jugarla la **mide** (colapsa) a una sola.*
 
 | Pieza del juego | Objeto cuántico | Dónde en el código |
 | :-- | :-- | :-- |
@@ -118,12 +146,6 @@ theta = math.atan2(math.sqrt(1 - 0.6**2), 0.6)    # z = 0.6  ->  P(0) = (1+z)/2 
 card = QuantumCircuit(1)
 card.ry(theta, 0)                                 # PREPARAR: superposición de las dos caras
 print(measure(card))                              # MEDIR: colapsa a una cara
-
-# Un par entrelazado: el CNOT une dos cartas (solo salen |00> y |11>).
-pair = QuantumCircuit(2)
-pair.ry(math.pi / 2, 0)                           # carta control en 50/50 exacto
-pair.cx(0, 1)                                     # ENTRELAZAR: control -> target
-print(measure(pair))
 ```
 
 Dependencias fijadas: [`examples/requirements.txt`](examples/requirements.txt)
@@ -137,6 +159,16 @@ Dependencias fijadas: [`examples/requirements.txt`](examples/requirements.txt)
 ## Motores
 
 El colapso pasa por un puerto (`front/qards/services/quantum.js`) con tres adaptadores:
+
+```mermaid
+flowchart TD
+  UI["UI: ui/render.js"] --> PORT["services/quantum.js (puerto)"]
+  PORT -->|probabilidades exactas| REF["referencia (local)"]
+  PORT -->|probabilidades exactas| QK["qiskit: Statevector (Qollab)"]
+  PORT -->|medición| REF
+  PORT -->|medición| IONQ["ionq (proxy local)"]
+  PORT -->|medición| QK
+```
 
 | Motor | Cuándo | Probabilidades | Medición | Estado |
 | :-- | :-- | :-- | :-- | :-- |

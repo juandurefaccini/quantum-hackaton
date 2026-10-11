@@ -180,7 +180,7 @@ tests corren con el motor de referencia local, así que el stub (que lanza) nunc
 │   ├── known-issues.md · roadmap.md · hackathon-brief.md
 │   └── AGENTS.md           contexto para agentes de IA
 ├── examples/           notebook Qiskit ejecutable + requirements
-├── assets/             notas para grabar el demo (sin GIF)
+├── assets/             notas del demo + assets/diagrams/ (SVG de Mermaid y PNG de cartas)
 ├── back/               motor del juego (estado.js) + capa cuántica (quantum/)
 │   ├── estado.js
 │   └── quantum/        util.js · qiskit.js · referencia.js

@@ -41,21 +41,14 @@ Tres ideas estructuran todo el código:
 3. **La cuántica es un puerto con adaptadores.** La UI nunca habla con Qiskit, IonQ ni el simulador
    directamente: solo con `services/quantum.js`. El adaptador se elige por entorno.
 
-```
-                         ┌──────────────────────────────────────────┐
-   UI (ui/render.js) ──► │ services/rules.js   (reglas y turnos)     │
-                         │ services/ai.js      (IA)                  │
-                         │ services/engine.js  (fachada del back)    │
-                         └───────────────┬──────────────────────────┘
-                                         │ importa
-                                         ▼
-                         ┌──────────────────────────────────────────┐
-                         │ back/estado.js   (motor puro, sin reglas) │
-                         └──────────────────────────────────────────┘
-
-   UI ──► services/quantum.js ──► ┌ back/quantum/referencia.js  (local, default)
-                                  │ back/quantum/qiskit.js      (Qollab)
-                                  └ services/ionq.js            (local, ?engine=ionq)
+```mermaid
+flowchart TD
+  UI["UI · ui/render.js"] --> S["services/rules.js · ai.js · engine.js"]
+  S --> B["back/estado.js (motor puro, sin reglas)"]
+  UI --> Q["services/quantum.js (puerto)"]
+  Q --> R["back/quantum/referencia.js (local, por defecto)"]
+  Q --> K["back/quantum/qiskit.js (Qollab)"]
+  Q --> I["services/ionq.js (local, ?engine=ionq)"]
 ```
 
 ---
@@ -341,36 +334,29 @@ posibles de una carta cuántica rival, junto con la cara asociada. No mide ni mo
 
 ### 6.1 Secuencia: jugar → medir → resolver
 
-```
-UI (render.js)   rules.js                      quantum.js              motor (remoto)
-   │
-   │ play(id) ──────►│
-   │                 │ ¿clásica o ya colapsada? ──► resolvePlay ──► fin (sin medir)
-   │                 │ si no: pending={cardId}; phase='measuring'
-   │◄── { needsMeasure: group }
-   │
-   │ medirGrupo(group) ──────────────────────►│
-   │                 │                         │ qiskit/ionq ──────►│  (backend.run / IonQ job)
-   │                 │                         │  ×  error / timeout → referencia (fallback local)
-   │◄─────────────────────────────────── bits[q]│
-   │
-   │ playCollapse(...)  ── animación (corre en paralelo a la medición; no bloquea)
-   │
-   │ resolveMeasure(state, bits) ──►│  fija face=outcomes[bit]; bits[q]=bit; collapsed=…
-   │                 │ resolvePlay: ¿la cara matchea el descarte?
-   │                 │   sí → descarte + efecto (skip/+2/wild4…) → ¿mano vacía? → winner
-   │                 │   no → queda colapsada en la mano + roba 1 (penalización)
-   │◄── { valid } / { valid:false } / { valid:true, won:true }
+```mermaid
+flowchart TD
+  P["Jugar una carta"] --> C{"¿tiene cara?"}
+  C -->|sí| R["resolver la jugada"]
+  C -->|no| M["phase = measuring; medirGrupo(group)"]
+  M --> RM["resolveMeasure(bits)"]
+  RM --> R
+  R --> V{"¿coincide con el descarte?"}
+  V -->|sí| OK["válida: al descarte + efecto"]
+  V -->|no| BAD["inválida: queda colapsada + roba 1"]
 ```
 
 ### 6.2 Secuencia: CNOT (entrelazar)
 
-```
-UI (applyGate 'cnot', control, target) ──► rules.applyGate ──► back.aplicarCnot
-   ├─ control y target en grupos distintos → FUSIONA:
-   │     ops del target se desplazan k = qubits(control); qubits del target se reindexan a +k
-   ├─ agrega ['cx', qubit(control), qubit(target)] al circuito del grupo fusionado
-   └─ el grupo pasa a (N+M) qubits; el target puede ser una carta del rival (CNOT_SOBRE_RIVAL)
+```mermaid
+flowchart TD
+  A["applyGate('cnot', control, target)"] --> B["rules.applyGate → back.aplicarCnot"]
+  B --> C{"¿grupos distintos?"}
+  C -->|sí| F["fusiona: desplaza los ops del target (k = qubits del control)"]
+  C -->|no| G["mismo grupo"]
+  F --> H["agrega ['cx', q(control), q(target)] al circuito"]
+  G --> H
+  H --> I["grupo de (N+M) qubits; el target puede ser del rival (CNOT_SOBRE_RIVAL)"]
 ```
 
 ---
@@ -418,17 +404,19 @@ orquesta el flujo de turnos (incluida la IA con pausas para que se siga la parti
 
 ### 8.1 Secuencia: boot
 
-```
-index.html (raíz) ──► <script type="module" src="./main.js">
-   └─ main.js (raíz) ──► import './front/qards/main.js'
-        └─ front/qards/main.js: initDebug(); boot()
-             boot(): ¿existe #root? ── no ──► reintenta (setTimeout 150 ms)
-                                     └─ sí ──► mount(root)
-                                                ├─ initDebug · startBackground (WebGL) · armAudio
-                                                ├─ ionqHealth() (¿proxy IonQ disponible?)
-                                                ├─ state = rules.newGame(...); render()
-                                                ├─ dealAnimation(); scheduleAI()
-                                                └─ await new Promise(() => {})  // mantiene la sesión viva (IonQ)
+```mermaid
+flowchart TD
+  H["index.html (raíz)"] --> M["main.js (raíz) → import './front/qards/main.js'"]
+  M --> B["front/qards/main.js: initDebug(); boot()"]
+  B --> Q{"¿existe #root?"}
+  Q -->|no| RT["reintenta (setTimeout 150 ms)"]
+  RT --> Q
+  Q -->|sí| MOUNT["mount(root)"]
+  MOUNT --> M1["initDebug · startBackground (WebGL) · armAudio"]
+  M1 --> M2["ionqHealth()"]
+  M2 --> M3["rules.newGame(); render()"]
+  M3 --> M4["dealAnimation(); scheduleAI()"]
+  M4 --> M5["await new Promise(() => {}) — mantiene viva la sesión (IonQ)"]
 ```
 
 ---
