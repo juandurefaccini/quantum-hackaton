@@ -17,11 +17,11 @@ import { bootStep } from './boot.js';
 
 const SYM = { skip: '⊘', reverse: '⇄', draw2: '+2', wild: '★', wild4: '+4' };
 const GATE_HINT = {
-  x: 'X: intercambia las probabilidades de las dos caras.',
-  z: 'Z: invierte la fase (+ ↔ −); no cambia las probabilidades, pero sí el resultado de una H posterior.',
-  h: 'H: convierte la fase en probabilidad: suele dejar la carta muy inclinada hacia una cara (la fase, que cambia con Z, decide cuál).',
-  cnot: 'CNOT: entrelaza dos cartas (control → target): invierte el target solo cuando el control da |1⟩, así que lo que pase con una cambia lo que sabés de la otra. El target puede ser una carta de la IA.',
-  sup: 'SUP (superposición): reabre una carta fija y la deja 50/50 entre sus dos caras. Elegí una carta con cara.',
+  x: 'X: swaps the probabilities of the two faces.',
+  z: 'Z: flips the phase (+ ↔ −); it does not change probabilities, but it does change the result of a later H.',
+  h: 'H: turns phase into probability: it usually leaves the card strongly tilted toward one face (the phase, changed by Z, decides which).',
+  cnot: 'CNOT: entangles two cards (control → target): it flips the target only when the control gives |1⟩, so what happens to one changes what you know about the other. The target can be an AI card.',
+  sup: 'SUP (superposition): reopens a fixed card and leaves it 50/50 between its two faces. Pick a card with a face.',
 };
 const el = (tag, props = {}, ...children) => {
   const node = document.createElement(tag);
@@ -208,12 +208,12 @@ export async function mount(root) {
 
   const bg = el('canvas', { class: 'bg', width: 320, height: 180 });
   const crt = el('div', { class: 'crt' });
-  try { stopBg = startBackground(bg); } catch (error) { warn(`fondo WebGL no disponible: ${error?.message ?? error}`); }
-  bootStep(`Motor cuántico (${quantum.kind()})`);
+  try { stopBg = startBackground(bg); } catch (error) { warn(`WebGL background unavailable: ${error?.message ?? error}`); }
+  bootStep(`Quantum engine (${quantum.kind()})`);
 
   const health = await quantum.ionqHealth().catch(() => ({ ok: false, hasKey: false }));
   const hasIonQ = !quantum.isQollab() && health.ok && health.hasKey;
-  bootStep(hasIonQ ? 'Backend IonQ conectado' : 'Backend local');
+  bootStep(hasIonQ ? 'IonQ backend connected' : 'Local backend');
 
   let state = rules.newGame({ seed: Date.now() % 100000 });
   let level = 'medium';
@@ -238,9 +238,9 @@ export async function mount(root) {
 
   const badgeEl = el('span', { class: 'badge' });
   const levelSel = el('select', {},
-    el('option', { value: 'easy' }, 'Fácil'),
-    el('option', { value: 'medium' }, 'Media'),
-    el('option', { value: 'hard' }, 'Difícil'));
+    el('option', { value: 'easy' }, 'Easy'),
+    el('option', { value: 'medium' }, 'Medium'),
+    el('option', { value: 'hard' }, 'Hard'));
   levelSel.value = level;
   const engineSel = el('select', {});
   const oppCountEl = el('span', { class: 'count-pill' }, '0');
@@ -253,16 +253,16 @@ export async function mount(root) {
   const hintTitleEl = el('span', { class: 'hint-title' }, 'Info');
   const stateEl = el('div', { class: 'hint-state' });
   const gateNextEl = el('p', { class: 'hint-sub' });
-  const colorPickEl = el('div', { class: 'color-pick', role: 'group', 'aria-label': 'Elegí un color' });
+  const colorPickEl = el('div', { class: 'color-pick', role: 'group', 'aria-label': 'Choose a color' });
   const activeColorEl = el('span', { class: 'active-color' });
   const hintBoxEl = el('div', { class: 'hint-box' }, hintTitleEl, hintEl, gateNextEl, stateEl, colorPickEl);
   hintBoxEl.addEventListener('pointerenter', () => clearTimeout(leaveTimer));
   hintBoxEl.addEventListener('pointerleave', () => { if (inspected) { inspected = null; hoverId = null; renderState(); } });
-  const drawBtn = el('button', { class: 'draw', type: 'button' }, 'Robar');
+  const drawBtn = el('button', { class: 'draw', type: 'button' }, 'Draw');
   const eyeBtn = el('button', { class: 'chip eye eye-big', type: 'button' });
   const eyeNextEl = el('span', { class: 'eye-next' });
   const spyToastEl = el('div', { class: 'spy-toast', role: 'status', 'aria-live': 'polite' });
-  const newBtn = el('button', { class: 'ghost', type: 'button' }, 'Nueva partida');
+  const newBtn = el('button', { class: 'ghost', type: 'button' }, 'New game');
   const markCb = el('input', { type: 'checkbox' });
   markCb.checked = true;
   markCb.addEventListener('change', () => {
@@ -279,25 +279,25 @@ export async function mount(root) {
 
   // Texto contextual del panel de info (en el centro de la mesa).
   function contextHint() {
-    if (state.phase === 'choosing') return state.turn.current === 0 ? 'Jugaste un comodín: elegí el color con el que seguimos.' : 'La IA está eligiendo color…';
-    if (state.phase === 'over') return state.winner === 'p1' ? 'Ganaste. Empezá una nueva partida cuando quieras.' : 'Ganó la IA. Probá otra vez.';
-    if (!isHumanTurn()) return 'La IA está pensando… Pasá el mouse por tus cartas para ver su estado.';
-    if (!rules.hasMove(state)) return 'No tenés jugadas posibles: robá una carta (botón debajo del mazo).';
-    return 'Tu turno: jugá una carta o prepará con una puerta.';
+    if (state.phase === 'choosing') return state.turn.current === 0 ? 'You played a wild: choose the color we continue with.' : 'The AI is choosing a color…';
+    if (state.phase === 'over') return state.winner === 'p1' ? 'You won. Start a new game whenever you like.' : 'The AI won. Try again.';
+    if (!isHumanTurn()) return 'The AI is thinking… Hover your cards to see their state.';
+    if (!rules.hasMove(state)) return 'No possible plays: draw a card (button below the deck).';
+    return 'Your turn: play a card or prepare with a gate.';
   }
 
   // Narración para el panel Info: qué cara salió, con qué probabilidad y cómo quedó la jugada.
   // `bits` viene de la medición (null para cartas clásicas); `pct0` es P(|0⟩) en % antes de medir.
   function describeResult(id, bits, res, who, pct0 = null) {
     const c = state.cards[id];
-    const verb = who === 'IA' ? 'La IA jugó' : 'Jugaste';
+    const verb = who === 'AI' ? 'The AI played' : 'You played';
     let collapse = '';
     if (bits && c.qubit != null && bits[c.qubit] != null) {
       const bit = bits[c.qubit];
       const pct = pct0 == null ? null : Math.round(bit === 0 ? pct0 : 100 - pct0);
-      collapse = ` — colapsó a |${bit}⟩${pct == null ? '' : ` (${pct}% de las veces)`}`;
+      collapse = ` — collapsed to |${bit}⟩${pct == null ? '' : ` (${pct}% of the time)`}`;
     }
-    const verdict = res?.won ? ' ✔ Ganó la partida.' : res?.valid ? ' ✔ Válida → descarte.' : ' ✘ Inválida: queda en la mano y roba 1.';
+    const verdict = res?.won ? ' ✔ Won the game.' : res?.valid ? ' ✔ Valid → discard.' : ' ✘ Invalid: stays in hand and draws 1.';
     return `${verb} ${rules.describeFace(c.face)}${collapse}.${verdict}`;
   }
 
@@ -309,16 +309,16 @@ export async function mount(root) {
 
   // Entrelazada = otro qubit de su grupo sigue sin medir. Su fase no es "de la carta sola".
   const isEntangled = c => !!c.group && state.groups[c.group].cards.some(x => x !== c.id && !state.cards[x].face);
-  const fmtPhase = (ph, c) => (ph ? `${ph} |${ph}⟩` : (isEntangled(c) ? '— (entrelazada)' : '—'));
+  const fmtPhase = (ph, c) => (ph ? `${ph} |${ph}⟩` : (isEntangled(c) ? '— (entangled)' : '—'));
 
   // Resumen del estado de la carta bajo el mouse (probabilidades y fase), en el cuadro Info.
   function renderState() {
     if (inspectedGate) {
       hintBoxEl.classList.add('show-state');
-      hintTitleEl.textContent = `Puerta ${inspectedGate.toUpperCase()}`;
+      hintTitleEl.textContent = `Gate ${inspectedGate.toUpperCase()}`;
       stateEl.replaceChildren(
         el('p', { class: 'gate-info' }, (GATE_HINT[inspectedGate] ?? '').replace(/^[A-Z]+: /, '')),
-        el('p', { class: 'gate-info muted' }, isHumanTurn() ? 'Clic para usarla; clic de nuevo para cancelar.' : 'La podés usar en tu turno.'));
+        el('p', { class: 'gate-info muted' }, isHumanTurn() ? 'Click to use it; click again to cancel.' : 'You can use it on your turn.'));
       return;
     }
     const c = inspected && state.cards[inspected.id];
@@ -326,7 +326,7 @@ export async function mount(root) {
     if (!c) { hintTitleEl.textContent = 'Info'; stateEl.replaceChildren(); return; }
     const p0 = Math.round((inspected.p?.[0] ?? 0.5) * 100);
     const phaseTxt = fmtPhase(inspected.ph, c);
-    hintTitleEl.textContent = 'Carta cuántica';
+    hintTitleEl.textContent = 'Quantum card';
     const cid = inspected.id;
     stateEl.replaceChildren(
       ...[0, 1].map(i => el('div', { class: 'st-row' },
@@ -335,10 +335,10 @@ export async function mount(root) {
         el('span', { class: 'st-pct' }, `${i ? 100 - p0 : p0}%`),
         el('span', { class: 'st-face' }, symOf(c.outcomes[i])))),
       el('div', { class: 'st-row phase' },
-        el('span', { class: 'st-ket' }, 'Fase'),
+        el('span', { class: 'st-ket' }, 'Phase'),
         el('span', { class: 'st-pct' }, phaseTxt)),
-      ...(isEntangled(c) ? [el('p', { class: 'gate-info muted' }, 'Entrelazada: lo que se mida en otra carta de su grupo cambia estas probabilidades.')] : []),
-      el('button', { class: 'ghost st-circuit', type: 'button', onclick: () => openCircuit(cid) }, 'Ver circuito'));
+      ...(isEntangled(c) ? [el('p', { class: 'gate-info muted' }, 'Entangled: measuring another card in its group changes these probabilities.')] : []),
+      el('button', { class: 'ghost st-circuit', type: 'button', onclick: () => openCircuit(cid) }, 'View circuit'));
   }
 
   // Abre la pantalla con el circuito de la carta (Volver / Jugar).
@@ -351,7 +351,7 @@ export async function mount(root) {
       const key = groupKey(g);
       if (!probCache.has(key)) probCache.set(key, await quantum.probabilidadesGrupo(g));
       probs = probCache.get(key);
-    } catch (e) { warn(`circuito: ${e?.message ?? e}`); }
+    } catch (e) { warn(`circuit: ${e?.message ?? e}`); }
     showCircuitOverlay(g, {
       cardQubit: c.qubit,
       probs,
@@ -520,7 +520,7 @@ export async function mount(root) {
     selectedId = null; pendingGate = null;
     if (r.error) { await render(); return; }
     if (r.needsMeasure) {
-      log(`Midiendo con ${quantum.kind()}…`);
+      log(`Measuring with ${quantum.kind()}…`);
       await render();
       try {
         const pct0 = await prob0Of(id);
@@ -529,10 +529,10 @@ export async function mount(root) {
           bitsPromise: quantum.medirGrupo(r.needsMeasure),
           symOf, prob0: pct0,
         });
-        pushEvent(describeResult(id, bits, rules.resolveMeasure(state, bits), 'Tú', pct0));
-      } catch (error) { warn(`medición falló: ${error?.message ?? error}`); }
+        pushEvent(describeResult(id, bits, rules.resolveMeasure(state, bits), 'You', pct0));
+      } catch (error) { warn(`measurement failed: ${error?.message ?? error}`); }
     } else {
-      pushEvent(describeResult(id, null, r, 'Tú'));
+      pushEvent(describeResult(id, null, r, 'You'));
     }
     await render();
     if (state.discard[state.discard.length - 1] === id) flyToDiscard(srcRect, ghost);
@@ -566,10 +566,10 @@ export async function mount(root) {
     if (!isHumanTurn()) return;
     if (spyMode) spyMode = false;
     else if (state.players[0].spies > 0) {
-      if (!state.players[1].hand.some(id => state.cards[id].group && !state.cards[id].face)) { hintEl.textContent = 'La IA no tiene cartas cuánticas sin medir para espiar.'; return; }
+      if (!state.players[1].hand.some(id => state.cards[id].group && !state.cards[id].face)) { hintEl.textContent = 'The AI has no unmeasured quantum cards to spy on.'; return; }
       spyMode = true; pendingGate = null; selectedId = null;
     }
-    else { hintEl.textContent = 'No te quedan espías.'; return; }
+    else { hintEl.textContent = 'You have no spies left.'; return; }
     audio.tick();
     await render();
   }
@@ -600,7 +600,7 @@ export async function mount(root) {
   }
 
   function spiedLabel(info) {
-    return `Espiada: |0⟩ ${rules.describeFace(info.outcomes[0])} (${info.prob0}%) · |1⟩ ${rules.describeFace(info.outcomes[1])} (${100 - info.prob0}%)`;
+    return `Spied: |0⟩ ${rules.describeFace(info.outcomes[0])} (${info.prob0}%) · |1⟩ ${rules.describeFace(info.outcomes[1])} (${100 - info.prob0}%)`;
   }
 
   // Cartel con el resultado del ojo: el estado revelado y la carta asociada.
@@ -615,13 +615,13 @@ export async function mount(root) {
     });
     card.style.setProperty('--qard-w', '104px');
     spyToastEl.replaceChildren(
-      el('div', { class: 'spy-head' }, '👁 Espiaste una carta de la IA'),
+      el('div', { class: 'spy-head' }, '👁 You spied on an AI card'),
       el('div', { class: 'spy-body' }, card,
         el('div', { class: 'spy-text' },
-          el('b', {}, 'Carta completa'),
+          el('b', {}, 'Full card'),
           el('span', {}, `|0⟩ ${rules.describeFace(o0)} · ${prob0}%`),
           el('span', {}, `|1⟩ ${rules.describeFace(o1)} · ${100 - prob0}%`))),
-      el('button', { class: 'ghost', type: 'button', onclick: () => { spyResult = null; renderSpy(); } }, 'Cerrar'));
+      el('button', { class: 'ghost', type: 'button', onclick: () => { spyResult = null; renderSpy(); } }, 'Close'));
   }
 
   // ¿`id` puede ser el objetivo de la puerta pendiente? 'sup' apunta a cartas FIJAS (con cara); las
@@ -654,7 +654,7 @@ export async function mount(root) {
         const live = handEl.querySelector(`[data-id="${id}"]`);
         if (live) live.style.opacity = '0'; // se oculta la carta ya superpuesta mientras corre la animación
         try { await playSuperpose({ rect, outcomes, symOf, prob0: 50 }); }
-        catch (error) { warn(`superposición: ${error?.message ?? error}`); }
+        catch (error) { warn(`superposition: ${error?.message ?? error}`); }
         if (live) live.style.opacity = '';
         return;
       }
@@ -663,7 +663,7 @@ export async function mount(root) {
       audio.blip(); await render(); return;
     }
     if (rules.canPlay(state, id)) { selectedId = selectedId === id ? null : id; audio.tick(); await render(); return; }
-    hintEl.textContent = 'Esa carta no es jugable ahora.';
+    hintEl.textContent = 'That card is not playable now.';
   }
 
   function startPress(id, event) {
@@ -755,12 +755,12 @@ export async function mount(root) {
   discardEl.addEventListener('click', async () => {
     if (!isHumanTurn()) return;
     if (selectedId && rules.canPlay(state, selectedId)) doPlay(selectedId);
-    else hintEl.textContent = 'Elegí una carta de tu mano y soltala acá para jugarla.';
+    else hintEl.textContent = 'Pick a card from your hand and drop it here to play it.';
   });
   drawBtn.addEventListener('click', async () => { if (isHumanTurn() && !rules.hasMove(state)) { audio.blip(); rules.draw(state); await render(); scheduleAI(); } });
   eyeBtn.addEventListener('click', onEye);
   levelSel.addEventListener('change', () => { level = levelSel.value; });
-  engineSel.addEventListener('change', () => { quantum.setEngine(engineSel.value); log(`motor → ${engineSel.value}`); render(); });
+  engineSel.addEventListener('change', () => { quantum.setEngine(engineSel.value); log(`engine → ${engineSel.value}`); render(); });
   newBtn.addEventListener('click', async () => {
     state = rules.newGame({ seed: Date.now() % 100000 });
     probCache.clear(); phaseCache.clear();
@@ -801,10 +801,10 @@ export async function mount(root) {
               bitsPromise: quantum.medirGrupo(r.needsMeasure),
               symOf, prob0: pct0,
             });
-            pushEvent(describeResult(action.cardId, bits, rules.resolveMeasure(state, bits), 'IA', pct0));
-          } catch (e) { warn(`medición IA: ${e?.message ?? e}`); }
+            pushEvent(describeResult(action.cardId, bits, rules.resolveMeasure(state, bits), 'AI', pct0));
+          } catch (e) { warn(`AI measurement: ${e?.message ?? e}`); }
         } else if (r.valid !== undefined) {
-          pushEvent(describeResult(action.cardId, null, r, 'IA'));
+          pushEvent(describeResult(action.cardId, null, r, 'AI'));
         }
         if (state.phase === 'choosing') rules.chooseColor(state, rules.autoColor(state, 1));
         played = { id: action.cardId, rect };
@@ -843,10 +843,10 @@ export async function mount(root) {
     const grewMe = Math.max(0, me.hand.length - lastCounts.me);
     const grewOpp = Math.max(0, opp.hand.length - lastCounts.opp);
     lastCounts = { me: me.hand.length, opp: opp.hand.length };
-    badgeEl.textContent = `motor: ${quantum.kind()}`;
+    badgeEl.textContent = `engine: ${quantum.kind()}`;
     engineSel.replaceChildren(
       ...(quantum.isQollab() ? [el('option', { value: 'qiskit' }, 'Qiskit')]
-        : [el('option', { value: 'referencia' }, 'Referencia'),
+        : [el('option', { value: 'referencia' }, 'Reference'),
            ...(hasIonQ ? [el('option', { value: 'ionq' }, 'IonQ')] : [])]));
     engineSel.value = quantum.kind();
     debugCb.checked = isDebugVisible(); // sincroniza el checkbox con el panel (que puede cambiar solo, ante errores)
@@ -871,7 +871,7 @@ export async function mount(root) {
     discardEl.style.setProperty('--active-color', FACE_COLOR[state.activeColor] ?? FACE_COLOR.grey);
     activeColorEl.replaceChildren(
       el('span', { class: 'ac-dot', style: `background:${FACE_COLOR[state.activeColor] ?? FACE_COLOR.grey}` }),
-      choosingColor ? 'eligiendo color…' : `Color: ${rules.COLOR_ES[state.activeColor] ?? state.activeColor}`);
+      choosingColor ? 'choosing color…' : `Color: ${rules.COLOR_ES[state.activeColor] ?? state.activeColor}`);
     const pickingNow = choosingColor && state.turn.current === 0;
     hintBoxEl.classList.toggle('choosing', pickingNow);
     colorPickEl.replaceChildren(...(pickingNow ? COLOR_LIST.map(color => el('button', {
@@ -890,7 +890,7 @@ export async function mount(root) {
       if (!group) { handEl.append(el('div', { class: 'slot' }, node)); continue; }
       let pod = pods.get(group.id);
       if (!pod) {
-        pod = el('div', { class: 'ent-group', title: 'Cartas entrelazadas: al medir una, cambian las probabilidades de las otras' });
+        pod = el('div', { class: 'ent-group', title: 'Entangled cards: measuring one changes the probabilities of the others' });
         pods.set(group.id, pod);
         handEl.append(pod);
       }
@@ -916,11 +916,11 @@ export async function mount(root) {
 
     // Próxima puerta: cadencia por turnos propios y tope en mano.
     const { cadaTurnos: cadaPuerta, maximo: maxPuertas } = rules.PUERTAS;
-    if (me.gates.length >= maxPuertas) gateNextEl.textContent = `Puertas al tope (${maxPuertas}): usá alguna para recibir más.`;
+    if (me.gates.length >= maxPuertas) gateNextEl.textContent = `Gate limit (${maxPuertas}): use one to receive more.`;
     else if (cadaPuerta > 1) {
       const t = me.turns || 1;
       const falta = cadaPuerta - ((t - 1) % cadaPuerta);
-      gateNextEl.textContent = `Próxima puerta: en ${falta} turno${falta === 1 ? '' : 's'} tuyo${falta === 1 ? '' : 's'}.`;
+      gateNextEl.textContent = `Next gate: in ${falta} of your turn${falta === 1 ? '' : 's'}.`;
     } else gateNextEl.textContent = '';
 
     const spies = me.spies ?? 0;
@@ -928,18 +928,18 @@ export async function mount(root) {
     const faltan = cadaTurnos > 0 && spies < maximo ? cadaTurnos - ((me.turns || 0) % cadaTurnos) : null;
     eyeBtn.replaceChildren(
       el('span', { class: 'eye-ico' }, '👁'),
-      el('span', { class: 'eye-txt' }, 'Ojo', el('small', {}, spyMode ? 'Elegí una carta de la IA' : 'Espiar una carta de la IA')),
+      el('span', { class: 'eye-txt' }, 'Eye', el('small', {}, spyMode ? 'Pick an AI card' : 'Spy on an AI card')),
       el('span', { class: 'eye-count' }, `×${spies}`));
     eyeBtn.disabled = !isHumanTurn() || (spies <= 0 && !spyMode);
     eyeBtn.classList.toggle('active', spyMode);
-    eyeBtn.title = `Espiar una carta de la IA (${spies} disponible${spies === 1 ? '' : 's'})`;
-    eyeNextEl.textContent = faltan === null ? '' : `+1 en ${faltan} turno${faltan === 1 ? '' : 's'} tuyo${faltan === 1 ? '' : 's'}`;
+    eyeBtn.title = `Spy on an AI card (${spies} available${spies === 1 ? '' : 's'})`;
+    eyeNextEl.textContent = faltan === null ? '' : `+1 in ${faltan} of your turn${faltan === 1 ? '' : 's'}`;
 
-    turnEl.textContent = state.phase === 'play' ? (state.turn.current === 0 ? 'Tu turno' : 'Turno de la IA…') : (state.phase === 'choosing' ? 'Elegí un color' : '');
+    turnEl.textContent = state.phase === 'play' ? (state.turn.current === 0 ? 'Your turn' : 'AI turn…') : (state.phase === 'choosing' ? 'Choose a color' : '');
 
     if (pendingGate) hintEl.textContent = GATE_HINT[pendingGate.gate];
-    else if (spyMode) hintEl.textContent = 'Ojo: elegí una carta cuántica de la IA (las resaltadas) y te muestro la carta completa: las dos caras y sus probabilidades.';
-    else if (selectedId) hintEl.textContent = 'Arrastrá la carta al descarte o clickeá el descarte para jugarla.';
+    else if (spyMode) hintEl.textContent = 'Eye: pick a quantum AI card (the highlighted ones) and I show you the full card: both faces and their probabilities.';
+    else if (selectedId) hintEl.textContent = 'Drag the card to the discard pile or click the discard pile to play it.';
     else hintEl.textContent = contextHint();
     renderState();
     renderSpy();
@@ -957,12 +957,12 @@ export async function mount(root) {
   const layout = el('div', { class: 'layout' },
     el('main', { class: 'board' },
       el('section', { class: 'opponent' },
-        el('div', { class: 'sec-head' }, el('span', { class: 'label' }, 'IA'), oppCountEl),
+        el('div', { class: 'sec-head' }, el('span', { class: 'label' }, 'AI'), oppCountEl),
         oppHandEl),
       el('section', { class: 'table' },
-        el('div', { class: 'pile' }, el('span', { class: 'label' }, 'Mazo'), deckEl, drawBtn),
+        el('div', { class: 'pile' }, el('span', { class: 'label' }, 'Deck'), deckEl, drawBtn),
         hintBoxEl,
-        el('div', { class: 'pile' }, el('span', { class: 'label' }, 'Descarte'), discardEl, activeColorEl)),
+        el('div', { class: 'pile' }, el('span', { class: 'label' }, 'Discard'), discardEl, activeColorEl)),
       el('section', { class: 'mine' }, handEl),
       el('section', { class: 'gates-row' }, eyeBtn, eyeNextEl)));
 
@@ -976,10 +976,10 @@ export async function mount(root) {
   const creditsEl = el('p', { class: 'credits' }, 'This effort is supported by Qollab & IonQ');
 
   root.append(bg, crt, app, creditsEl, spyToastEl);
-  log(`Qards lista (motor ${quantum.kind()}).`);
-  bootStep('Repartiendo cartas');
+  log(`Qards ready (engine ${quantum.kind()}).`);
+  bootStep('Dealing cards');
   await render();
   await dealAnimation();
-  bootStep('Listo');
+  bootStep('Ready');
   scheduleAI();
 }

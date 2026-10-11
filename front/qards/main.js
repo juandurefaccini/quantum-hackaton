@@ -4,21 +4,21 @@ import { showBoot, bootStep, hideBoot } from './ui/boot.js';
 
 initDebug();
 showBoot();
-bootStep('Iniciando Qards');
-log('main.js cargado');
+bootStep('Starting Qards');
+log('main.js loaded');
 
 // Qollab may evaluate this module before index.html is mounted, so wait for it.
 let started = false;
 function boot() {
   const root = document.getElementById('root');
   if (!root) { setTimeout(boot, 150); return; }
-  if (started) { log('boot: ya montado, ignoro segunda carga'); return; }
+  if (started) { log('boot: already mounted, ignoring second load'); return; }
   started = true;
-  log('boot: #root encontrado');
-  bootStep('Preparando tablero');
+  log('boot: #root found');
+  bootStep('Preparing board');
   mount(root)
     .then(() => { log('mount ok'); hideBoot(); })
-    .catch(error => { hideBoot(); fail(`mount falló: ${error && error.message ? error.message : error}`); showFatal(root, error); });
+    .catch(error => { hideBoot(); fail(`mount failed: ${error && error.message ? error.message : error}`); showFatal(root, error); });
 }
 boot();
 

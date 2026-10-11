@@ -63,7 +63,7 @@ function buildOverlay({ card, anchor, symOf, prob0 }) {
   result.append(span('', '|0⟩'));
   const caption = document.createElement('div');
   caption.className = 'cc-caption';
-  caption.textContent = 'midiendo…';
+  caption.textContent = 'measuring…';
 
   stage.append(ghost, scan, kets, result, caption);
   overlay.append(stage);
@@ -87,7 +87,7 @@ export async function playCollapse({ state, group, cardId, bitsPromise, symOf = 
 
   const bit = bits[card.qubit];
   overlay.querySelector('.cc-result span').textContent = `|${bit}⟩`;
-  overlay.querySelector('.cc-caption').textContent = `colapso → |${bit}⟩`;
+  overlay.querySelector('.cc-caption').textContent = `collapse → |${bit}⟩`;
   overlay.classList.remove('measuring');
   overlay.classList.add('collapsing', bit ? 'to-1' : 'to-0');
   await sleep(COLLAPSE_MS);

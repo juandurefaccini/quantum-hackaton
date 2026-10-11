@@ -23,7 +23,7 @@ function ensurePanel() {
   const toggle = document.createElement('button');
   toggle.type = 'button';
   toggle.textContent = '–';
-  toggle.title = 'colapsar/expandir';
+  toggle.title = 'collapse/expand';
   toggle.addEventListener('click', () => panel.classList.toggle('collapsed'));
   head.append(toggle);
   pre = document.createElement('pre');
@@ -51,7 +51,7 @@ export function initDebug() {
     const reason = event.reason;
     fail(`rejection: ${reason && reason.stack ? reason.stack : reason}`);
   });
-  push('debug listo');
+  push('debug ready');
 }
 
 export function log(message) { push(`· ${message}`); console.log(message); }
@@ -65,6 +65,6 @@ export function showFatal(root, error) {
   if (!root) return;
   const box = document.createElement('pre');
   box.className = 'fatal';
-  box.textContent = `Qards falló al iniciar:\n\n${text}\n\nRevisá el panel de debug abajo a la derecha.`;
+  box.textContent = `Qards failed to start:\n\n${text}\n\nCheck the debug panel at the bottom right.`;
   root.replaceChildren(box);
 }

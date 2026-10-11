@@ -66,16 +66,16 @@ export async function medirGrupo(group) {
     } catch (error) {
       if (isOneJobLimit(error)) {
         remoteJobsExhausted = true;
-        console.warn('El backend remoto (IonQ) admite un solo job por ejecución; el resto de los colapsos se calculan con el simulador de referencia.');
+        console.warn('The remote backend (IonQ) allows a single job per run; remaining collapses are computed with the reference simulator.');
       } else {
-        console.warn(`Medición con qiskit falló (${error?.message ?? error}); se usa la referencia.`);
+        console.warn(`Measurement with qiskit failed (${error?.message ?? error}); falling back to reference.`);
       }
     }
   } else if (engine === 'ionq') {
     try {
       return await ionq.medirGrupo(group);
     } catch (error) {
-      console.warn(`Medición con ionq falló (${error?.message ?? error}); se usa la referencia.`);
+      console.warn(`Measurement with ionq failed (${error?.message ?? error}); falling back to reference.`);
     }
   }
   return referencia.muestrear(group);

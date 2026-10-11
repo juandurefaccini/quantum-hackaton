@@ -48,7 +48,7 @@ function buildOverlay({ rect, outcomes, symOf, prob0 }) {
   kets.append(span('sp-ket sp-ket0', '|0⟩'), span('sp-ket sp-ket1', '|1⟩'));
   const caption = document.createElement('div');
   caption.className = 'sp-caption';
-  caption.textContent = 'cargando…';
+  caption.textContent = 'loading…';
 
   stage.append(classic, quantum, kets, caption);
   overlay.append(stage);
@@ -77,14 +77,14 @@ export async function playSuperpose({ rect, outcomes, symOf = s => s, prob0 = 50
 
   // 0) VIAJE AL CENTRO (a la vez que "carga").
   overlay.classList.add('charging');
-  caption.textContent = 'cargando…';
+  caption.textContent = 'loading…';
   const moveIn = overlay.animate([{ transform: enCasa }, { transform: enMesa }], { duration: MOVE_MS, easing: ease, fill: 'forwards' });
   await Promise.all([moveIn.finished, sleep(CHARGE_MS)]);
 
   // 1) SEPARACIÓN en el centro: la carta se abre en sus dos caras.
   overlay.classList.remove('charging');
   overlay.classList.add('splitting');
-  caption.textContent = 'separando…';
+  caption.textContent = 'splitting…';
   await sleep(SPLIT_MS);
 
   // 2) ASENTAR: queda la superposición.
