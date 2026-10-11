@@ -139,9 +139,10 @@ export const CATALOGO = {
   // (Con 24 quedarían las 48 cartas cuánticas emparejadas.)
   entrelazados: 0,
 
-  // Mazo de puertas, aparte del de cartas. Todas con la misma chance.
+  // Mazo de puertas, aparte del de cartas. Cada entrada repetida suma chance: X y CNOT 1/3 cada una,
+  // H y Z 1/6. (Z sola no cambia probabilidades y H deja la carta casi clásica, por eso salen menos.)
   // 'x', 'z' y 'h' se aplican a una carta; 'cnot' a dos (control y target).
-  puertas: ['x', 'z', 'h', 'cnot'],
+  puertas: ['x', 'x', 'cnot', 'cnot', 'h', 'z'],
 };
 
 // ---------------------------------------------------------------------------
@@ -260,7 +261,7 @@ export function createGame({ players, seed = 1, handSize = 7 }) {
   const [primera] = deck.splice(i, 1);
 
   const state = {
-    phase: 'play',                       // 'play' | 'measuring' | 'over'
+    phase: 'play',                       // 'play' | 'measuring' | 'choosing' | 'over'
     players: players.map((name, n) => ({ id: `p${n + 1}`, name, hand: [], gates: [] })),
     cards: mazo.cards,
     groups: mazo.groups,
@@ -270,7 +271,7 @@ export function createGame({ players, seed = 1, handSize = 7 }) {
     // no tiene color propio: quien lo juega elige uno, y queda guardado acá.
     activeColor: mazo.cards[primera].face.color,
     turn: { current: 0, direction: 1 },
-    pending: null,                       // jugada esperando una medición
+    pending: null,                       // jugada esperando una medición ('measuring') o un color ('choosing')
     winner: null,
     rng: { seed: barajado.seed },
   };
@@ -334,7 +335,8 @@ export function checkState(state) {
 
   // Coherencia de fase
   if (state.phase === 'measuring' && !state.pending) problemas.push('fase measuring sin jugada pendiente');
-  if (state.phase !== 'measuring' && state.pending) problemas.push('hay jugada pendiente fuera de la fase measuring');
+  if (state.phase === 'choosing' && !state.pending) problemas.push('fase choosing sin comodín pendiente');
+  if (state.phase !== 'measuring' && state.phase !== 'choosing' && state.pending) problemas.push('hay jugada pendiente fuera de las fases measuring/choosing');
   if (state.phase === 'over' && !state.winner) problemas.push('partida terminada sin ganador');
 
   // Mesa: la carta de arriba tiene cara, y hay un color vigente válido
