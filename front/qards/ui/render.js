@@ -1,4 +1,4 @@
-// Quards UI (DOM) sobre el MODELO DEL BACK, vía servicios (engine, quantum,
+// Qards UI (DOM) sobre el MODELO DEL BACK, vía servicios (engine, quantum,
 // rules, ai). Misma estructura de DOM/CSS; el colapso lo decide el puerto cuántico.
 import * as quantum from '../services/quantum.js';
 import * as rules from '../services/rules.js';
@@ -38,7 +38,7 @@ const symOf = f => SYM[f.symbol] ?? f.symbol;
 const FACE_COLOR = { red: '#e0463a', blue: '#3a7bd5', green: '#2fae6a', yellow: '#e6b23a', grey: '#6b6358' };
 
 // Preferencia persistente: marcar (o no) las cartas posiblemente jugables.
-const PLAYABLE_KEY = 'quards:markPlayable';
+const PLAYABLE_KEY = 'qards:markPlayable';
 function loadFlag(key, fallback = true) {
   try { const v = localStorage.getItem(key); return v === null ? fallback : v === '1'; } catch { return fallback; }
 }
@@ -176,9 +176,9 @@ const GLITCH_CSS = `
   }
 `;
 function ensureGlitchStyles() {
-  if (document.getElementById('quards-glitch-styles')) return;
+  if (document.getElementById('qards-glitch-styles')) return;
   const tag = document.createElement('style');
-  tag.id = 'quards-glitch-styles';
+  tag.id = 'qards-glitch-styles';
   tag.textContent = GLITCH_CSS;
   document.head.append(tag);
 }
@@ -194,9 +194,9 @@ function glitchPhase(node, id) {
 }
 
 function ensureSpyStyles() {
-  if (document.getElementById('quards-spy-styles')) return;
+  if (document.getElementById('qards-spy-styles')) return;
   const tag = document.createElement('style');
-  tag.id = 'quards-spy-styles';
+  tag.id = 'qards-spy-styles';
   tag.textContent = SPY_CSS;
   document.head.append(tag);
 }
@@ -835,15 +835,18 @@ export async function mount(root) {
 
   const app = el('div', { class: 'app' },
     el('header', {},
-      el('div', { class: 'header-left' }, el('h1', {}, 'Quards'), badgeEl, turnEl),
+      el('div', { class: 'header-left' }, el('h1', {}, 'Qards'), badgeEl, turnEl),
       el('div', { class: 'header-right' },
         el('label', { class: 'toggle', title: 'Resaltar las cartas que podrían jugarse' }, markCb, 'Jugables'),
         el('label', { class: 'toggle', title: 'Mostrar el panel de debug' }, debugCb, 'Debug'),
         el('label', {}, 'IA ', levelSel), el('label', {}, 'Motor ', engineSel), newBtn)),
     layout);
 
-  root.append(bg, crt, app, spyToastEl);
-  log(`Quards lista (motor ${quantum.kind()}).`);
+  // Atribución exigida por el hackathon: queda visible en el proyecto mientras corre.
+  const creditsEl = el('p', { class: 'credits' }, 'This effort is supported by Qollab & IonQ');
+
+  root.append(bg, crt, app, creditsEl, spyToastEl);
+  log(`Qards lista (motor ${quantum.kind()}).`);
   await render();
   await dealAnimation();
   scheduleAI();

@@ -83,7 +83,7 @@ export function applyGate(state, gate, a, b) {
   return { ok: true };
 }
 
-// Espía una carta de la mano del rival. Gasta una carga y revela UNO de sus estados posibles (al azar,
+// Espía una carta de la mano del rival. Gasta una carga y revela uno de sus estados posibles (al azar,
 // con la semilla de la partida) junto con la cara asociada. No mide ni cambia nada de la carta.
 // Solo se pueden espiar cartas cuánticas sin medir (si no, error y no se gasta la carga).
 // Devuelve { ok, id, k, face }: k = 0 o 1 (estado revelado) y la cara asociada.

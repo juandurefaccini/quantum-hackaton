@@ -3,17 +3,17 @@
 // El browser no puede llamar a api.ionq.co (CORS) ni conviene exponer la API key,
 // así que las llamadas a /ionq/* se reenvían desde acá con la key (server-side).
 //
-//   node front/quards/dev-server.mjs --env /ruta/a/.env
-//   node front/quards/dev-server.mjs --key TU_KEY --port 8000
+//   node front/qards/dev-server.mjs --env /ruta/a/.env
+//   node front/qards/dev-server.mjs --key TU_KEY --port 8000
 //
-// Key: process.env.IONQ_API_KEY, o un archivo .env (front/quards/.env por defecto).
+// Key: process.env.IONQ_API_KEY, o un archivo .env (front/qards/.env por defecto).
 // NUNCA se commitea la key (los .env están gitignored).
 import { createServer } from 'node:http';
 import { readFileSync, statSync, existsSync } from 'node:fs';
 import { join, extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const HERE = fileURLToPath(new URL('.', import.meta.url)); // front/quards/
+const HERE = fileURLToPath(new URL('.', import.meta.url)); // front/qards/
 const ROOT = resolve(HERE, '..', '..'); // raíz del repo
 
 const argv = process.argv.slice(2);
@@ -83,8 +83,8 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Quards dev-server en http://localhost:${PORT}`);
+  console.log(`Qards dev-server en http://localhost:${PORT}`);
   console.log(`  app:   http://localhost:${PORT}/            (entry raíz: index.html + main.js)`);
-  console.log(`  dev:   http://localhost:${PORT}/front/quards/dev.html`);
+  console.log(`  dev:   http://localhost:${PORT}/front/qards/dev.html`);
   console.log(`  IonQ:  ${KEY ? 'proxy ACTIVO (key cargada)' : 'sin key (usá --env o --key)'}  [${ENV_PATH}]`);
 });

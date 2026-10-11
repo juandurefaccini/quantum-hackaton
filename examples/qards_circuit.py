@@ -1,4 +1,4 @@
-"""Quards — una carta cuántica como circuito (Qiskit).
+"""Qards — una carta cuántica como circuito (Qiskit).
 
 Una carta cuántica es un qubit en superposición; al jugarla (medirla) colapsa a
 una de sus dos caras. Este script:
@@ -12,7 +12,7 @@ estado se evalúa en Python y `sample_counts` lo muestrea. Por eso corre tambié
 en el playground de Qollab (Pyodide), donde no hay wheels nativos.
 
     python -m pip install -r requirements.txt
-    python quards_circuit.py
+    python qards_circuit.py
 
 Para apuntarlo a IonQ, ver la nota al final del archivo.
 """
@@ -81,7 +81,36 @@ show("Par entrelazado (solo |00> y |11>):", sample_counts(pair))
 
 
 # ---------------------------------------------------------------------------
-# 4) IonQ (opcional, no verificado en este repo).
+# 4) La fase: H·Z·H ≡ X. La parte genuinamente cuántica.
+# ---------------------------------------------------------------------------
+# Una puerta Z no cambia las probabilidades visibles: solo mueve la fase. Esa fase
+# "no se ve" hasta que una H la vuelve a mezclar; entonces H·Z·H actúa igual que X.
+# Este es el lado Qiskit del test JS del repo (front/qards/tests/services.test.js):
+# la misma comparación se corre contra el simulador de referencia del juego.
+def hzh_is_x() -> None:
+    hzh = QuantumCircuit(1)
+    hzh.ry(theta, 0); hzh.h(0); hzh.z(0); hzh.h(0)
+    xop = QuantumCircuit(1)
+    xop.ry(theta, 0); xop.x(0)
+    p_hzh = list(Statevector(hzh).probabilities())
+    p_x = list(Statevector(xop).probabilities())
+    assert all(abs(a - b) < 1e-9 for a, b in zip(p_hzh, p_x)), "H·Z·H debe coincidir con X"
+
+    z_only = QuantumCircuit(1)
+    z_only.ry(theta, 0); z_only.z(0)   # Z sola: la fase no cambia lo que se mide
+    p_z = list(Statevector(z_only).probabilities())
+    assert abs(float(p_z[0]) - (1 + z) / 2) < 1e-9, "Z sola no cambia las probabilidades"
+
+    print("\nFase — H·Z·H ≡ X")
+    print(f"  preparada  P(0) = {(1 + z) / 2:.2f}   (Z sola la deja igual: {float(p_z[0]):.2f})")
+    print(f"  H·Z·H      P(0) = {float(p_hzh[0]):.2f}   X: {float(p_x[0]):.2f}   -> coinciden")
+
+
+hzh_is_x()
+
+
+# ---------------------------------------------------------------------------
+# 5) IonQ (opcional, no verificado en este repo).
 # ---------------------------------------------------------------------------
 # Para correr el mismo circuito en IonQ hace falta un token. Con qiskit-ionq:
 #

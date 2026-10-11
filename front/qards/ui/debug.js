@@ -65,6 +65,6 @@ export function showFatal(root, error) {
   if (!root) return;
   const box = document.createElement('pre');
   box.className = 'fatal';
-  box.textContent = `Quards falló al iniciar:\n\n${text}\n\nRevisá el panel de debug abajo a la derecha.`;
+  box.textContent = `Qards falló al iniciar:\n\n${text}\n\nRevisá el panel de debug abajo a la derecha.`;
   root.replaceChildren(box);
 }

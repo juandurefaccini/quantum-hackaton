@@ -4,6 +4,7 @@ import { newGame, play, resolveMeasure, applyGate, draw, playableIds } from '../
 import { chooseAction } from '../services/ai.js';
 import * as quantum from '../services/quantum.js';
 import { checkState } from '../services/engine.js';
+import { distribucion } from '../../../back/quantum/referencia.js';
 
 async function step(state, action) {
   if (action.type === 'gate') return applyGate(state, action.gate, action.a, action.b);
@@ -47,6 +48,25 @@ test('jugar una carta mide y mantiene la coherencia', async () => {
   else draw(s);
   assert.equal(s.phase, 'play');
   assert.deepEqual(checkState(s), []);
+});
+
+// La fase es la parte genuinamente cuántica del juego: Z no cambia las probabilidades visibles, pero
+// una H posterior convierte esa fase en probabilidad. Verificamos la identidad H·Z·H ≡ X en el
+// simulador de referencia y contra los valores del Statevector de Qiskit (capturados con qiskit 2.5.2).
+// Ver también examples/qards_circuit.py (el lado Qiskit de esta misma comparación).
+test('H·Z·H ≡ X: la fase se vuelve probabilidad (coincide con Qiskit Statevector)', () => {
+  const z = 0.6; // carta preparada con P(0) = (1+z)/2 = 0.8
+  const theta = Math.atan2(Math.sqrt(1 - z * z), z);
+  const hzh = distribucion({ qubits: 1, ops: [['ry', theta, 0], ['h', 0], ['z', 0], ['h', 0]] });
+  const x = distribucion({ qubits: 1, ops: [['ry', theta, 0], ['x', 0]] });
+  // H·Z·H ≡ X: mismas probabilidades
+  for (let i = 0; i < hzh.length; i++) assert.ok(Math.abs(hzh[i] - x[i]) < 1e-12);
+  // Valores de Qiskit 2.5.2 (Statevector.probabilities()): H·Z·H = [0.2, 0.8]
+  assert.ok(Math.abs(hzh[0] - 0.2) < 1e-9);
+  assert.ok(Math.abs(hzh[1] - 0.8) < 1e-9);
+  // Z sola (sin H) NO cambia las probabilidades: la fase es invisible hasta que una H la revela.
+  const zOnly = distribucion({ qubits: 1, ops: [['ry', theta, 0], ['z', 0]] });
+  assert.ok(Math.abs(zOnly[0] - 0.8) < 1e-12);
 });
 
 for (const level of ['easy', 'medium', 'hard']) {

@@ -1,4 +1,4 @@
-// Quards UI (DOM) sobre el MODELO DEL BACK, vía servicios (engine, quantum,
+// Qards UI (DOM) sobre el MODELO DEL BACK, vía servicios (engine, quantum,
 // rules, ai). Misma estructura de DOM/CSS; el colapso lo decide el puerto cuántico.
 import * as quantum from '../services/quantum.js';
 import * as rules from '../services/rules.js';
@@ -38,7 +38,7 @@ const symOf = f => SYM[f.symbol] ?? f.symbol;
 const FACE_COLOR = { red: '#e0463a', blue: '#3a7bd5', green: '#2fae6a', yellow: '#e6b23a', grey: '#6b6358' };
 
 // Preferencia persistente: marcar (o no) las cartas posiblemente jugables.
-const PLAYABLE_KEY = 'quards:markPlayable';
+const PLAYABLE_KEY = 'qards:markPlayable';
 function loadFlag(key, fallback = true) {
   try { const v = localStorage.getItem(key); return v === null ? fallback : v === '1'; } catch { return fallback; }
 }
@@ -598,7 +598,7 @@ export async function mount(root) {
 
   const app = el('div', { class: 'app' },
     el('header', {},
-      el('div', { class: 'header-left' }, el('h1', {}, 'Quards'), badgeEl),
+      el('div', { class: 'header-left' }, el('h1', {}, 'Qards'), badgeEl),
       el('div', { class: 'header-right' },
         el('label', { class: 'toggle', title: 'Resaltar las cartas que podrían jugarse' }, markCb, 'Jugables'),
         el('label', { class: 'toggle', title: 'Mostrar el panel de debug' }, debugCb, 'Debug'),
@@ -606,7 +606,7 @@ export async function mount(root) {
     layout);
 
   root.append(bg, crt, app);
-  log(`Quards lista (motor ${quantum.kind()}).`);
+  log(`Qards lista (motor ${quantum.kind()}).`);
   await render();
   await dealAnimation();
   scheduleAI();

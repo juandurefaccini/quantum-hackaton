@@ -1,8 +1,15 @@
 // Hand-written WebGL swirl on a 320x180 buffer, upscaled with pixelation.
-// Domain-warped fBm mixing petroleum green and red. rAF loop.
-export function startBackground(canvas) {
-  const gl = canvas.getContext('webgl', { antialias: false, premultipliedAlpha: false });
-  if (!gl) return () => {};
+// Domain-warped fBm mixing petroleum green and red.
+//
+//   startBackground(canvas)                    -> rAF loop en tiempo real (juego)
+//   startBackground(canvas, { manual: true })  -> sin loop; el llamador fija el
+//                                                 tiempo con stop.setTime(s) y dibuja
+//                                                 con stop.render() (studio: reloj virtual)
+//
+// Devuelve siempre la función `stop`; además lleva `setTime`/`render` para el modo manual.
+export function startBackground(canvas, { manual = false, preserveDrawingBuffer = false } = {}) {
+  const gl = canvas.getContext('webgl', { antialias: false, premultipliedAlpha: false, preserveDrawingBuffer });
+  if (!gl) { const noop = () => {}; noop.setTime = noop; noop.render = noop; return noop; }
 
   const vs = `
     attribute vec2 a_pos;
@@ -67,13 +74,19 @@ export function startBackground(canvas) {
   const uTime = gl.getUniformLocation(program, 'u_time');
   gl.uniform2f(uRes, canvas.width, canvas.height);
 
+  const draw = seconds => { gl.uniform1f(uTime, seconds); gl.drawArrays(gl.TRIANGLES, 0, 3); };
+
   let raf = 0;
+  let virtual = 0;
   const start = performance.now();
   const frame = now => {
-    gl.uniform1f(uTime, (now - start) / 1000);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    draw((now - start) / 1000);
     raf = requestAnimationFrame(frame);
   };
-  raf = requestAnimationFrame(frame);
-  return () => cancelAnimationFrame(raf);
+  if (!manual) raf = requestAnimationFrame(frame);
+
+  const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
+  stop.setTime = seconds => { virtual = seconds; };
+  stop.render = () => draw(virtual);
+  return stop;
 }

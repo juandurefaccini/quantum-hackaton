@@ -8,10 +8,10 @@ import { cpSync, mkdirSync, rmSync, readFileSync, writeFileSync, readdirSync } f
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const HERE = fileURLToPath(new URL('.', import.meta.url)); // front/quards/
+const HERE = fileURLToPath(new URL('.', import.meta.url)); // front/qards/
 const ROOT = resolve(HERE, '..', '..');
-const OUT = resolve(HERE, '..', 'quards.zip');
-const TMP = resolve(ROOT, '.quards-build');
+const OUT = resolve(HERE, '..', 'qards.zip');
+const TMP = resolve(ROOT, '.qards-build');
 const FILES = ['index.html', 'main.css', 'main.js'];
 const DIRS = ['services', 'ui', 'back'];
 
