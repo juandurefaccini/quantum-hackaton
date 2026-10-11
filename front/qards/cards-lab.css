@@ -1,0 +1,398 @@
+/* Laboratorio de cartas: 10 variantes sobre la base de main.css.
+   Cada variante se aplica como `.vN` sobre `.card`; los estados de ejemplo
+   (super, |0>, |1>, acciones, jugable, seleccionada, boca abajo) son iguales. */
+
+/* main.css fija overflow:hidden en html; hay que liberar html Y body para scrollear. */
+html.lab-html, html.lab-html body.lab-body { height: auto; min-height: 100%; overflow: auto; }
+
+.lab {
+  position: relative; z-index: 10;
+  width: min(1700px, 96vw); margin: 0 auto;
+  padding: 22px 16px 70px;
+  --card-w: 78px;
+}
+
+/* --- cabecera --- */
+.lab-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.lab-title h1 { margin: 0; font-size: 26px; }
+.lab-sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.lab-controls { display: flex; align-items: center; gap: 14px; font-size: 13px; color: var(--muted); }
+.lab .toggle { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
+.lab .toggle input { accent-color: var(--teal); width: 15px; height: 15px; cursor: pointer; }
+.link { text-decoration: none; display: inline-block; padding: 6px 12px; }
+
+/* --- grilla de variantes --- */
+.lab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 18px; }
+.spec {
+  background: var(--panel);
+  border: 3px solid var(--edge);
+  box-shadow: 7px 7px 0 rgba(0,0,0,0.55);
+  padding: 14px 14px 18px;
+}
+.spec-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+.vtag {
+  flex: none; min-width: 34px; text-align: center;
+  font-weight: 700; font-size: 13px; color: var(--gold);
+  background: #14120f; border: 2px solid var(--edge); padding: 3px 6px;
+  box-shadow: 2px 2px 0 var(--edge);
+}
+.spec-name { display: flex; align-items: center; gap: 8px; }
+.spec-copy strong { font-size: 15px; letter-spacing: 0.04em; }
+.spec-desc { margin: 2px 0 0; font-size: 11px; color: var(--muted); }
+.fam { font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; padding: 1px 6px; border: 1px solid var(--edge); }
+.fam-base { color: var(--muted); background: rgba(255,255,255,0.05); }
+.fam-UNO { color: #ffd23f; background: rgba(255,210,63,0.12); }
+.fam-Poker { color: #ff8f7a; background: rgba(255,143,122,0.12); }
+.fam-original { color: var(--teal); background: rgba(34,179,160,0.14); }
+.fam-glitch { color: #c07bff; background: rgba(192,123,255,0.14); }
+.fam-cards { color: #7ec8ff; background: rgba(126,200,255,0.14); }
+
+/* --- prueba: superposición glitch (dos cartas + shader WebGL) --- */
+.spec-glitch { margin-bottom: 18px; }
+.glitch-row { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.glitch-card {
+  width: min(420px, 100%); height: auto; image-rendering: pixelated;
+  border: 2px solid var(--edge); box-shadow: 5px 5px 0 rgba(0,0,0,0.55);
+  background: rgba(0,0,0,0.25);
+}
+/* Canvas glitch como espécimen dentro de una fila de variante (más chico). */
+.lab .glitch-spec { width: 176px; }
+.glitch-controls { display: flex; flex-direction: column; gap: 12px; font-size: 12px; color: var(--muted); }
+.glitch-amt { display: flex; flex-direction: column; gap: 4px; }
+.glitch-amt input { accent-color: var(--teal); width: 180px; }
+.spec-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.spec-cell { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.cap { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+
+/* El color de cada face queda disponible como var(--c) para las variantes. */
+.lab .color-red { --c: #e0463a; }
+.lab .color-yellow { --c: #e6b23a; }
+.lab .color-green { --c: #2fae6a; }
+.lab .color-blue { --c: #3a7bd5; }
+.lab .color-wild { --c: #e6b23a; }
+
+/* Nodos extra de la face (esquinas + pip): ocultos salvo que la variante los muestre. */
+.lab .card .face { position: relative; }
+.lab .card .corner, .lab .card .pip { display: none; }
+
+/* Boca abajo: misma espalda en todas las variantes (el lab compara las caras). */
+.lab .card.facedown { background: linear-gradient(135deg, #143b37, #0d2b28) !important; }
+
+/* --- v1 · Clásica (base) --- */
+/* sin overrides: usa el look por defecto de main.css */
+
+/* --- v2 · Suave --- */
+.lab .card.v2 {
+  border: 0; border-radius: 18px;
+  background: linear-gradient(160deg, #f6efe1, #e6dcc6);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.55);
+}
+.lab .card.v2 .face { border-radius: 16px 16px 0 0; }
+
+/* --- v3 · Neón --- */
+.lab .card.v3 {
+  border: 2px solid rgba(34,179,160,0.55); border-radius: 12px;
+  background: #0b1412; color: var(--ink);
+  box-shadow: 0 0 18px rgba(34,179,160,0.35), inset 0 0 24px rgba(34,179,160,0.14);
+}
+.lab .card.v3 .face { background: transparent; }
+.lab .card.v3 .face .num { color: var(--c); text-shadow: 0 0 10px var(--c); }
+.lab .card.v3 .face .pct { color: var(--teal); }
+
+/* --- v4 · Vidrio --- */
+.lab .card.v4 {
+  border: 1px solid rgba(255,255,255,0.4); border-radius: 14px;
+  background: rgba(255,255,255,0.08);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  color: var(--ink);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
+}
+.lab .card.v4 .face { background: color-mix(in srgb, var(--c) 58%, transparent); }
+
+/* --- v5 · Brutalista --- */
+.lab .card.v5 {
+  border: 5px solid #000; border-radius: 0;
+  background: #fffdf5;
+  box-shadow: 9px 9px 0 #000;
+}
+.lab .card.v5 .face .num { text-shadow: 2px 2px 0 rgba(0,0,0,0.3); }
+
+/* --- v6 · Terminal --- */
+.lab .card.v6 {
+  border: 2px solid #1f7a5e; border-radius: 2px;
+  background: #04120a; color: #7dffb0;
+  box-shadow: 0 0 0 2px #04120a, 0 0 14px rgba(47,174,106,0.4);
+  image-rendering: pixelated;
+}
+.lab .card.v6::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.25) 0 1px, transparent 1px 3px);
+}
+.lab .card.v6 .face { background: transparent; }
+.lab .card.v6 .face .num { color: var(--c); text-shadow: 0 0 6px var(--c); }
+.lab .card.v6 .face .pct { color: #7dffb0; }
+
+/* --- v7 · Holográfica --- */
+.lab .card.v7 {
+  border: 0; border-radius: 12px; padding: 3px;
+  background: conic-gradient(from 180deg, #ff5b48, #f2c14e, #39d17e, #5a9bff, #ff5b48);
+  box-shadow: 0 0 20px rgba(90,155,255,0.4);
+}
+.lab .card.v7 .face { border-radius: 9px 9px 0 0; }
+.lab .card.v7 .face:nth-child(2) { border-radius: 0 0 9px 9px; }
+
+/* --- v8 · Blueprint --- */
+.lab .card.v8 {
+  border: 1px solid rgba(90,200,255,0.7); border-radius: 4px;
+  background-color: #0a1c2e; color: #bfe9ff;
+  background-image:
+    linear-gradient(rgba(90,200,255,0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(90,200,255,0.12) 1px, transparent 1px);
+  background-size: 10px 10px;
+  box-shadow: 0 0 12px rgba(90,200,255,0.25);
+}
+.lab .card.v8 .face { background: transparent; }
+.lab .card.v8 .face .num { color: var(--c); }
+.lab .card.v8 .face .pct { color: #bfe9ff; }
+
+/* --- v9 · Minimal --- */
+.lab .card.v9 {
+  border: 0; border-radius: 3px;
+  background: #faf7f0; color: #1b1a18;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.45);
+}
+.lab .card.v9 .face { background: transparent; }
+.lab .card.v9 .face .num::before {
+  content: ""; display: inline-block; width: 0.55em; height: 0.55em;
+  border-radius: 50%; background: var(--c); margin-right: 0.4em;
+  vertical-align: middle; box-shadow: 0 0 0 2px rgba(0,0,0,0.08);
+}
+.lab .card.v9 .face .pct { color: #6b6455; }
+
+/* --- v10 · VFD retro --- */
+.lab .card.v10 {
+  border: 2px solid #3a1f12; border-radius: 16px;
+  background: #140b06; color: #ff9f45;
+  box-shadow: inset 0 0 18px rgba(255,120,40,0.25), 0 0 14px rgba(255,120,40,0.2);
+}
+.lab .card.v10 .face { background: transparent; }
+.lab .card.v10 .face .num {
+  color: #ffb35c;
+  text-shadow: 0 0 10px rgba(255,150,60,0.9), 0 0 2px #fff;
+  font-variant-numeric: tabular-nums;
+}
+.lab .card.v10 .face .pct { color: #ff8a2b; }
+
+/* ===================== familia UNO ===================== */
+
+/* --- v11 · UNO clásico --- */
+.lab .card.v11, .lab .card.v11 .face { background: var(--c); }
+.lab .card.v11 { border: 4px solid #fff; border-radius: 14px; box-shadow: 3px 3px 0 rgba(0,0,0,0.55); }
+.lab .card.v11 .num {
+  color: var(--c); background: #fff; font-size: 1.5em;
+  border-radius: 50%; padding: 0.06em 0.34em; box-shadow: 0 1px 0 rgba(0,0,0,0.3);
+}
+.lab .card.v11 .corner { display: flex; flex-direction: column; color: #fff; font-size: 0.5em; line-height: 1; }
+.lab .card.v11 .corner.br { transform: rotate(180deg); }
+.lab .card.v11 .corner .st { display: none; }
+
+/* --- v12 · UNO oscuro --- */
+.lab .card.v12 { background: #12161f; border: 3px solid #fff; border-radius: 14px; }
+.lab .card.v12 .face { background: transparent; }
+.lab .card.v12 .num {
+  color: #fff; background: var(--c); font-size: 1.4em;
+  border-radius: 50%; padding: 0.06em 0.34em; box-shadow: 0 0 12px var(--c);
+}
+.lab .card.v12 .corner { display: flex; flex-direction: column; color: var(--c); font-size: 0.5em; line-height: 1; }
+.lab .card.v12 .corner.br { transform: rotate(180deg); }
+.lab .card.v12 .corner .st { display: none; }
+
+/* --- v13 · UNO plano --- */
+.lab .card.v13, .lab .card.v13 .face { background: var(--c); }
+.lab .card.v13 { border: 0; border-radius: 10px; }
+.lab .card.v13 .num { color: #fff; font-size: 2em; text-shadow: 1px 1px 0 rgba(0,0,0,0.25); }
+.lab .card.v13 .corner { display: flex; flex-direction: column; color: #fff; font-size: 0.5em; line-height: 1; }
+.lab .card.v13 .corner.br { transform: rotate(180deg); }
+.lab .card.v13 .corner .st { display: none; }
+
+/* ===================== familia poker / naipe ===================== */
+
+/* --- v14 · Naipe francés --- */
+.lab .card.v14 { background: #fbf8f0; border: 1px solid #cfc7b4; border-radius: 7px; box-shadow: 0 5px 14px rgba(0,0,0,0.4); }
+.lab .card.v14 .face { background: transparent; }
+.lab .card.v14 .num { display: none; }
+.lab .card.v14 .corner { display: flex; flex-direction: column; position: absolute; color: var(--c); font-size: 0.62em; line-height: 1.02; }
+.lab .card.v14 .corner.tl { top: 5px; left: 6px; }
+.lab .card.v14 .corner.br { bottom: 5px; right: 6px; transform: rotate(180deg); }
+.lab .card.v14 .pip { display: block; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: var(--c); font-size: 2.4em; }
+
+/* --- v15 · Naipe oro --- */
+.lab .card.v15 { background: #14110c; border: 2px solid #c9a24a; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,0.6), inset 0 0 20px rgba(201,162,74,0.14); }
+.lab .card.v15 .face { background: transparent; }
+.lab .card.v15 .num { display: none; }
+.lab .card.v15 .corner { display: flex; flex-direction: column; position: absolute; color: #e8c877; font-size: 0.62em; line-height: 1.02; }
+.lab .card.v15 .corner.tl { top: 5px; left: 6px; }
+.lab .card.v15 .corner.br { bottom: 5px; right: 6px; transform: rotate(180deg); }
+.lab .card.v15 .pip { display: block; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: rgba(232,200,119,0.22); font-size: 2.6em; }
+
+/* --- v16 · Naipe suizo (minimal) --- */
+.lab .card.v16 { background: #fbfaf6; border: 1px solid #e2ddd0; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
+.lab .card.v16 .face { background: transparent; }
+.lab .card.v16 .num { display: none; }
+.lab .card.v16 .corner { display: flex; flex-direction: column; position: absolute; color: var(--c); font-size: 0.82em; line-height: 1.05; }
+.lab .card.v16 .corner.tl { top: 6px; left: 7px; }
+.lab .card.v16 .corner.br { display: none; }
+.lab .card.v16 .pip { display: block; position: absolute; left: 50%; top: 54%; transform: translate(-50%, -50%); color: var(--c); font-size: 3em; }
+
+/* ===================== originales ===================== */
+
+/* --- v17 · Metal líquido --- */
+.lab .card.v17 {
+  border: 1px solid #2a2d36; border-radius: 12px;
+  background: linear-gradient(135deg, #f2f3f7 0%, #9aa0b2 38%, #eef0f6 52%, #6f7488 100%);
+  box-shadow: inset 0 1px 0 #fff, inset 0 -2px 6px rgba(0,0,0,0.3), 0 10px 22px rgba(0,0,0,0.5);
+}
+.lab .card.v17 .face { background: transparent; }
+.lab .card.v17 .num { color: var(--c); text-shadow: 0 1px 0 #fff, 0 -1px 1px rgba(0,0,0,0.45); }
+.lab .card.v17 .corner { display: flex; flex-direction: column; color: #3a3f4d; font-size: 0.5em; line-height: 1; }
+.lab .card.v17 .corner.br { transform: rotate(180deg); }
+.lab .card.v17 .corner .st { display: none; }
+
+/* --- v18 · Riso duotono --- */
+.lab .card.v18 { border: 0; border-radius: 4px; background: #f2e9d8; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+.lab .card.v18 .face { background: transparent; }
+.lab .card.v18 .num { color: var(--c); font-weight: 800; text-shadow: 3px 3px 0 #1b1a18; }
+.lab .card.v18 .corner { display: flex; flex-direction: column; color: #1b1a18; font-size: 0.5em; line-height: 1; }
+.lab .card.v18 .corner.br { transform: rotate(180deg); }
+.lab .card.v18 .corner .st { display: none; }
+.lab .card.v18::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(0,0,0,0.10) 1px, transparent 1.4px); background-size: 4px 4px;
+}
+
+/* --- v19 · Arcade LED --- */
+.lab .card.v19 {
+  border: 2px solid #ff3ea5; border-radius: 6px; background: #0a0a12;
+  box-shadow: 0 0 16px rgba(255,62,165,0.5), inset 0 0 18px rgba(255,62,165,0.15);
+}
+.lab .card.v19 .face { background: transparent; }
+.lab .card.v19 .num { color: #39e6ff; text-shadow: 0 0 8px #39e6ff, 0 0 2px #fff; }
+.lab .card.v19 .corner { display: flex; flex-direction: column; color: #ff3ea5; font-size: 0.5em; line-height: 1; }
+.lab .card.v19 .corner.br { transform: rotate(180deg); }
+.lab .card.v19 .corner .st { display: none; }
+.lab .card.v19::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1.2px); background-size: 5px 5px;
+}
+
+/* --- v20 · Ticket --- */
+.lab .card.v20 { border: 0; border-radius: 8px; background: #f6efdc; box-shadow: 0 6px 16px rgba(0,0,0,0.45); }
+.lab .card.v20 .face { background: transparent; }
+.lab .card.v20 .num { color: var(--c); font-size: 1.5em; }
+.lab .card.v20 .corner { display: flex; flex-direction: column; color: #1b1a18; font-size: 0.5em; line-height: 1; }
+.lab .card.v20 .corner.br { transform: rotate(180deg); }
+.lab .card.v20 .corner .st { display: none; }
+.lab .card.v20::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 26%; background: var(--c); opacity: 0.85; }
+.lab .card.v20::after { content: ""; position: absolute; left: 0; right: 0; bottom: 26%; border-top: 2px dashed rgba(0,0,0,0.4); }
+
+/* El % de superposición de las variantes nuevas va abajo al centro (no rompe la esquina). */
+.lab .card.v11 .pct, .lab .card.v12 .pct, .lab .card.v13 .pct, .lab .card.v14 .pct,
+.lab .card.v15 .pct, .lab .card.v16 .pct, .lab .card.v17 .pct, .lab .card.v18 .pct,
+.lab .card.v19 .pct, .lab .card.v20 .pct {
+  position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
+}
+
+/* ============================================================
+   familia cards/ — split diagonal + kets (importado del último pull)
+   Mismo aspecto 5:7. Superpuesta = split; definida = full-bg.
+   ============================================================ */
+.lab .qcard {
+  position: relative;
+  width: var(--card-w);
+  aspect-ratio: 5 / 7;
+  font-size: calc(var(--card-w) * 0.28);
+  border-radius: 14px;
+  border: 3px solid #ffffff;
+  overflow: hidden;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.7);
+  user-select: none;
+  background-color: #0d1117;
+}
+.lab .qcard .qh0 { position: absolute; inset: 0; clip-path: polygon(0 0, 100% 0, 0 100%); }
+.lab .qcard .qh1 { position: absolute; inset: 0; clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+.lab .qcard .qline {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to bottom right, transparent calc(50% - 1px), rgba(255,255,255,0.81) 50%, transparent calc(50% + 1px));
+}
+.lab .qcard .qfull { position: absolute; inset: 0; }
+.lab .qcard .qred { background-color: #d31815; }
+.lab .qcard .qblue { background-color: #1c24be; }
+.lab .qcard .qyellow { background-color: #e4d82e; }
+.lab .qcard .qgreen { background-color: #1ba91d; }
+.lab .qcard .qdark { background-color: #000000; }
+.lab .qcard .qsymbols { position: absolute; inset: 0; pointer-events: none; }
+.lab .qcard .qsym { position: absolute; font-size: 1.05em; font-weight: 300; color: #fff; line-height: 1; }
+.lab .qcard .qsym-0 { top: 30%; left: 30%; transform: translate(-50%, -50%); }
+.lab .qcard .qsym-1 { bottom: 30%; right: 30%; transform: translate(50%, 50%); }
+.lab .qcard .qsym-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.lab .qcard .qcontent { position: absolute; inset: 0; padding: 8px; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
+.lab .qcard .qhead { display: flex; justify-content: flex-start; }
+.lab .qcard .qfoot { display: flex; justify-content: flex-end; }
+.lab .qcard .qket { font-size: 0.62em; font-weight: 300; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.7); }
+.lab .qcard .qpct { display: none; margin-left: 3px; font-size: 0.85em; font-weight: 500; opacity: 0.85; }
+.lab .qcard.playable { outline: 3px solid var(--gold); outline-offset: -1px; box-shadow: 0 0 14px var(--gold); }
+.lab .qcard.selected { outline: 3px solid var(--teal); box-shadow: 0 0 16px var(--teal); }
+.lab .qcard.facedown { background: linear-gradient(135deg, #143b37, #0d2b28); }
+.lab .qcard.facedown.back::after { content: "◈"; position: absolute; inset: 0; display: grid; place-items: center; color: var(--teal); font-size: 1.4em; }
+
+/* qv22 · vertical */
+.lab .qcard.qv22 .qh0 { clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%); }
+.lab .qcard.qv22 .qh1 { clip-path: polygon(50% 0, 100% 0, 100% 100%, 50% 100%); }
+.lab .qcard.qv22 .qline { background: linear-gradient(to right, transparent calc(50% - 1px), rgba(255,255,255,0.8) 50%, transparent calc(50% + 1px)); }
+.lab .qcard.qv22 .qsym-0 { top: 28%; left: 25%; }
+.lab .qcard.qv22 .qsym-1 { bottom: 28%; right: 25%; }
+
+/* qv23 · horizontal */
+.lab .qcard.qv23 .qh0 { clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%); }
+.lab .qcard.qv23 .qh1 { clip-path: polygon(0 50%, 100% 50%, 100% 100%, 0 100%); }
+.lab .qcard.qv23 .qline { background: linear-gradient(to bottom, transparent calc(50% - 1px), rgba(255,255,255,0.8) 50%, transparent calc(50% + 1px)); }
+.lab .qcard.qv23 .qsym-0 { top: 25%; left: 50%; }
+.lab .qcard.qv23 .qsym-1 { bottom: 25%; right: 50%; transform: translate(50%, 50%); }
+
+/* qv24 · neón */
+.lab .qcard.qv24 { border-color: #22b3a0; background: #05100e; box-shadow: 0 0 24px rgba(34,179,160,0.45), 0 12px 24px rgba(0,0,0,0.7); }
+.lab .qcard.qv24 .qline { background: linear-gradient(to bottom right, transparent calc(50% - 1.5px), #22b3a0 50%, transparent calc(50% + 1.5px)); }
+.lab .qcard.qv24 .qsym, .lab .qcard.qv24 .qket { color: #eafffb; text-shadow: 0 0 10px rgba(34,179,160,0.95); }
+
+/* qv25 · fundido */
+.lab .qcard.qv25 .qh1 { mix-blend-mode: screen; opacity: 0.82; }
+.lab .qcard.qv25 .qline { background: linear-gradient(to bottom right, transparent 34%, rgba(255,255,255,0.34) 50%, transparent 66%); filter: blur(2px); }
+.lab .qcard.qv25 .qsym { opacity: 0.92; }
+
+/* qv26 · terminal */
+.lab .qcard.qv26 { border: 2px solid #1f7a5e; border-radius: 4px; background: #04120a; box-shadow: 0 0 16px rgba(47,174,106,0.35); }
+.lab .qcard.qv26 .qsym, .lab .qcard.qv26 .qket { font-family: ui-monospace, "SFMono-Regular", monospace; color: #7dffb0; text-shadow: 0 0 6px rgba(47,174,106,0.8); }
+.lab .qcard.qv26 .qline { background: linear-gradient(to bottom right, transparent calc(50% - 1px), #1f7a5e 50%, transparent calc(50% + 1px)); }
+.lab .qcard.qv26::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.25) 0 1px, transparent 1px 3px); }
+
+/* qv27 · blanca */
+.lab .qcard.qv27 { background: #f4efe4; border: 2px solid #1b1a18; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,0.5); }
+.lab .qcard.qv27 .qsym, .lab .qcard.qv27 .qket { color: #1b1a18; text-shadow: none; }
+.lab .qcard.qv27 .qline { background: linear-gradient(to bottom right, transparent calc(50% - 1px), rgba(0,0,0,0.5) 50%, transparent calc(50% + 1px)); }
+
+/* qv28 · con probabilidad */
+.lab .qcard.qv28 .qpct { display: inline; }
+.lab .qcard.qv28 .qket { font-size: 0.56em; background: rgba(0,0,0,0.55); padding: 1px 5px; border-radius: 5px; }
+
+/* La espalda siempre gana sobre texturas/talones de las variantes. */
+.lab .card.facedown.back::after {
+  content: "◈"; background: none; border: 0;
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: var(--teal); font-size: 1.4em;
+}
+.lab .card.facedown::before { content: none; }
+
+@media (max-width: 560px) {
+  .lab { --card-w: 64px; }
+  .lab-grid { grid-template-columns: 1fr; }
+}

@@ -10,6 +10,7 @@ import { entangledGroupOf, orderHand } from './entangle.js';
 import { mountQard } from './qard.js';
 import { createGateCard, ensureGateStyles } from './gatecard.js';
 import { playCollapse } from './collapse.js';
+import { mountGlitchCard, disposeAllGlitch } from './glitch.js';
 import { showCircuitOverlay, hideCircuitOverlay } from './circuit-overlay.js';
 
 const SYM = { skip: '⊘', reverse: '⇄', draw2: '+2', wild: '★', wild4: '+4' };
@@ -157,60 +158,6 @@ const SPY_CSS = `
   .spy-toast .spy-text { display: flex; flex-direction: column; gap: 2px; }
   .spy-toast .spy-text b { font-size: 1.4em; }
 `;
-// Glitch de las cartas cuánticas (sin medir): una ráfaga corta cada 5-8 s, desfasada por carta.
-// Todo en em: escala con el tamaño de la carta. Se apaga con movimiento reducido y bajo el mouse.
-const GLITCH_CSS = `
-  .card.k-qubit .inner-canvas { animation: qglitch var(--gl-dur, 6s) steps(1, end) var(--gl-delay, 0s) infinite; }
-  .card.k-qubit .inner-canvas::after {
-    content: ""; position: absolute; left: 0; right: 0; top: -12%; height: 7%; z-index: 3;
-    background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.28), rgba(255,255,255,0));
-    mix-blend-mode: screen; opacity: 0; pointer-events: none;
-    animation: qscan var(--gl-dur, 6s) linear var(--gl-delay, 0s) infinite;
-  }
-  .card.k-qubit .sym { animation: qglitch-sym var(--gl-dur, 6s) steps(1, end) var(--gl-delay, 0s) infinite; }
-  .card.k-qubit:hover .inner-canvas, .card.k-qubit:hover .inner-canvas::after, .card.k-qubit:hover .sym { animation: none; }
-
-  @keyframes qglitch {
-    0%, 91.9% { transform: none; clip-path: none; filter: none; }
-    92%   { transform: translate(-0.05em, 0); filter: drop-shadow(-0.07em 0 rgba(0, 255, 255, 0.75)) drop-shadow(0.07em 0 rgba(255, 40, 110, 0.75)); }
-    93.4% { transform: translate(0.08em, 0); clip-path: inset(16% 0 64% 0); filter: drop-shadow(-0.07em 0 rgba(0, 255, 255, 0.75)) drop-shadow(0.07em 0 rgba(255, 40, 110, 0.75)); }
-    94.8% { transform: translate(-0.06em, 0.02em); clip-path: inset(60% 0 12% 0); filter: hue-rotate(35deg) drop-shadow(0.07em 0 rgba(0, 255, 255, 0.75)) drop-shadow(-0.07em 0 rgba(255, 40, 110, 0.75)); }
-    96.2% { transform: translate(0.03em, 0); clip-path: none; filter: drop-shadow(-0.05em 0 rgba(0, 255, 255, 0.6)) drop-shadow(0.05em 0 rgba(255, 40, 110, 0.6)); }
-    97.4%, 100% { transform: none; clip-path: none; filter: none; }
-  }
-  @keyframes qglitch-sym {
-    0%, 91.9% { text-shadow: none; }
-    92%, 96.2% { text-shadow: -0.05em 0 rgba(0, 255, 255, 0.85), 0.05em 0 rgba(255, 40, 110, 0.85); }
-    97.4%, 100% { text-shadow: none; }
-  }
-  @keyframes qscan {
-    0%, 91.9% { top: -12%; opacity: 0; }
-    92% { top: -12%; opacity: 1; }
-    97% { top: 105%; opacity: 1; }
-    97.5%, 100% { top: 105%; opacity: 0; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .card.k-qubit .inner-canvas, .card.k-qubit .inner-canvas::after, .card.k-qubit .sym { animation: none; }
-  }
-`;
-function ensureGlitchStyles() {
-  if (document.getElementById('qards-glitch-styles')) return;
-  const tag = document.createElement('style');
-  tag.id = 'qards-glitch-styles';
-  tag.textContent = GLITCH_CSS;
-  document.head.append(tag);
-}
-
-// Fase del glitch de una carta: depende del id y del reloj global, así no se reinicia (ni se sincroniza
-// con las demás) cada vez que render() reconstruye la mano.
-function glitchPhase(node, id) {
-  const h = [...String(id)].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7);
-  const dur = 5 + (h % 31) / 10; // 5.0 a 8.0 s entre ráfagas
-  const phase = (performance.now() / 1000 + (h % 100) / 10) % dur;
-  node.style.setProperty('--gl-dur', `${dur.toFixed(2)}s`);
-  node.style.setProperty('--gl-delay', `-${phase.toFixed(2)}s`);
-}
-
 // Selector de color (comodines) y color vigente en el descarte.
 const COLOR_CSS = `
   .hint-box .color-pick { display: none; gap: 10px; margin-top: 4px; }
@@ -247,9 +194,8 @@ export async function mount(root) {
   teardownPrev?.();
   const ac = new AbortController();
   let stopBg = () => {};
-  teardownPrev = () => { ac.abort(); stopBg(); hideCircuitOverlay(); };
+  teardownPrev = () => { ac.abort(); stopBg(); disposeAllGlitch(); hideCircuitOverlay(); };
   ensureSpyStyles();
-  ensureGlitchStyles();
   ensureColorStyles();
   ensureGateStyles();
   audio.armAudio();
@@ -438,7 +384,7 @@ export async function mount(root) {
     if (opts.selected) node.classList.add('selected');
     if (opts.facedown) { node.classList.add('facedown', 'back'); return node; }
     const grad = f => f.color ?? 'grey';
-    let probs = null, phase = null;
+    let probs = null, phase = null, fx = null;
     if (c.face) {
       mountQard(node, { kind: 'classic', color: opts.bgColor ?? grad(c.face), symbol: symOf(c.face) });
     } else {
@@ -451,11 +397,19 @@ export async function mount(root) {
         prob0: Math.round((p?.[0] ?? 0.5) * 100),
         phase,
       });
+      // Superposición: la carta se dibuja como textura y el shader le aplica el
+      // glitch (RGB split + slices). Reemplaza el interior del .inner-canvas.
+      const canvas = el('canvas', { class: 'qard-fx' });
+      node.querySelector('.inner-canvas')?.replaceChildren(canvas);
+      fx = mountGlitchCard(canvas, {
+        color0: grad(c.outcomes[0]), sym0: symOf(c.outcomes[0]),
+        color1: grad(c.outcomes[1]), sym1: symOf(c.outcomes[1]),
+        prob0: Math.round((p?.[0] ?? 0.5) * 100),
+      });
     }
     if (c.group && !c.face) {
-      glitchPhase(node, id);
-      const show = () => { clearTimeout(leaveTimer); inspected = { id, p: probs, ph: phase }; renderState(); };
-      const leave = () => { clearTimeout(leaveTimer); leaveTimer = setTimeout(() => { inspected = null; renderState(); }, 700); };
+      const show = () => { fx?.setHover(true); clearTimeout(leaveTimer); inspected = { id, p: probs, ph: phase }; renderState(); };
+      const leave = () => { fx?.setHover(false); clearTimeout(leaveTimer); leaveTimer = setTimeout(() => { inspected = null; renderState(); }, 700); };
       node.addEventListener('pointerenter', show);
       node.addEventListener('focus', show);
       node.addEventListener('pointerleave', leave);
@@ -885,6 +839,9 @@ export async function mount(root) {
       style: `background:${FACE_COLOR[color]}`, onclick: () => pickColor(color),
     })) : []));
 
+    // Las cartas viejas se van a reemplazar: libera sus contextos WebGL justo ahora
+    // (no antes, para no blanquear las cartas que todavía están en pantalla).
+    disposeAllGlitch();
     handEl.replaceChildren();
     const pods = new Map();
     for (const id of orderHand(state, me.hand)) {
