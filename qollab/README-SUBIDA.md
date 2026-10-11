@@ -50,8 +50,8 @@ Pegá el Markdown de **[`PROJECT-CARD.md`](PROJECT-CARD.md)** (inglés, versión
 **Project Card**. [`PROJECT-CARD.es.md`](PROJECT-CARD.es.md) es la traducción al español, con el mismo
 contenido y la misma estructura. Completá además:
 
-- **Thumbnail:** una captura real del tablero (16:9, legible); es el mismo frame que sirve de base para
-  el demo GIF. Guardala como `qollab/thumbnail.png` o arrastrala directo.
+- **Thumbnail:** ya está generada en [`thumbnail.png`](thumbnail.png) (16:9, 2560×1440, con las cartas
+  reales del juego). Subila a Qollab; si preferís, usá una captura del tablero en su lugar.
 - **Tags:** `qiskit`, `ionq`, `game`, `entanglement`, `superposition`.
 - **Contributors:** agregá a los colaboradores reales.
 - **Links → Git repository:** el repo de arriba. **Link → website:** opcional.

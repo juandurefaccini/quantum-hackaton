@@ -17,6 +17,8 @@ superposition of two *faces*, e.g. *Red 5* / *Blue 2*. You can bias a card with 
 get, and whether the play is legal. You bet on the odds — but the odds are a state you can shape, not
 a coin you can't see.
 
+![A quantum card holds two faces at once and collapses when played](https://raw.githubusercontent.com/juandurefaccini/quantum-hackaton/main/assets/diagrams/measure-en.png)
+
 ## The quantum part
 
 | Game piece | Quantum object | Where in the code |
@@ -91,6 +93,8 @@ There are three levers:
 Rule of thumb: **`X` to get the other face, `H` to commit, `Z` before `H` to pick the side, `CNOT` to
 make a second card share the first card's fate.**
 
+![Favorable plays: X to swap, H to commit, Z then H for the other face, CNOT to link](https://raw.githubusercontent.com/juandurefaccini/quantum-hackaton/main/assets/diagrams/plays-en.svg)
+
 **Play 1 — rescue a bad card with `X`.** Your card reads *Red 5* 20 % / *Blue 2* 80 %, and *Blue 2* is
 what matches the discard. Apply `X`: the faces swap, so *Blue 2* is now at 80 %. No luck involved.
 
@@ -118,6 +122,8 @@ Every number here comes from the game's reference simulator; `H·Z·H ≡ X` is 
 against Qiskit's `Statevector` (test suite and `examples/qards_circuit.py`).
 
 ## How to run it on Qollab
+
+![The quantum port: probabilities are exact; only the measurement goes to the backend](https://raw.githubusercontent.com/juandurefaccini/quantum-hackaton/main/assets/diagrams/port-en.svg)
 
 1. Open the project and **Select QPU → free local simulator** (IonQ simulator also works — see below).
 2. Press **Run**. The board appears above the console.

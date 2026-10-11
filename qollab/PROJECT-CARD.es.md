@@ -17,6 +17,8 @@ entrelazar dos cartas con un `CNOT`. Jugar una carta la **mide**: el colapso dec
 la jugada es válida. Se apuesta a las probabilidades, pero esas probabilidades son un estado que se
 puede modelar, no una moneda oculta.
 
+![Una carta cuántica sostiene dos caras y colapsa al jugarla](https://raw.githubusercontent.com/juandurefaccini/quantum-hackaton/main/assets/diagrams/measure-es.png)
+
 ## La parte cuántica
 
 | Pieza del juego | Objeto cuántico | Dónde en el código |
@@ -91,6 +93,8 @@ palancas:
 Regla práctica: **`X` para quedarte con la otra cara, `H` para comprometerte, `Z` antes de `H` para
 elegir el lado, `CNOT` para que una segunda carta comparta la suerte de la primera.**
 
+![Jugadas favorables: X intercambia, H compromete, Z y después H para la otra cara, CNOT liga](https://raw.githubusercontent.com/juandurefaccini/quantum-hackaton/main/assets/diagrams/plays-es.svg)
+
 **Jugada 1 — rescatar una carta mala con `X`.** Tu carta dice *Rojo 5* 20 % / *Azul 2* 80 %, y *Azul 2*
 es lo que matchea el descarte. Aplicás `X`: las caras se dan vuelta y *Azul 2* queda al 80 %. Sin azar.
 
@@ -118,6 +122,8 @@ Todos los números salen del simulador de referencia del juego; además, `H·Z·
 el `Statevector` de Qiskit (la suite de tests y `examples/qards_circuit.py`).
 
 ## Cómo correrlo en Qollab
+
+![El puerto cuántico: las probabilidades son exactas; solo la medición va al backend](https://raw.githubusercontent.com/juandurefaccini/quantum-hackaton/main/assets/diagrams/port-es.svg)
 
 1. Abrir el proyecto y elegir **Select QPU → simulador local** gratuito (el simulador de IonQ también
    sirve — ver abajo).
