@@ -8,10 +8,11 @@ export function entangledGroupOf(state, id, hand) {
   const card = state.cards[id];
   if (!card || !card.group) return null;
   const group = state.groups[card.group];
-  if (!group || group.collapsed || card.face) return null;
-  // Solo cuenta como entrelazado visible si hay 2+ cartas del grupo en esta mano:
-  // un grupo puede estar repartido (la otra carta en la IA/mazo) y entonces no hay par que mostrar.
-  const inHand = hand ? group.cards.filter(x => hand.includes(x)).length : group.cards.length;
+  if (!group || card.face) return null;
+  // Solo cuenta como entrelazado visible si hay 2+ cartas SIN MEDIR del grupo en esta mano:
+  // las ya medidas (con cara) siguen en el grupo pero ya no forman parte del par visible.
+  const vivas = group.cards.filter(x => !state.cards[x].face);
+  const inHand = hand ? vivas.filter(x => hand.includes(x)).length : vivas.length;
   return inHand >= 2 ? group : null;
 }
 

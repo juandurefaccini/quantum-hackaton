@@ -57,18 +57,21 @@ function carta(id, group, qubit, caraSiMide0, caraSiMide1) {
 // porque el estado de dos qubits entrelazados es conjunto. Cada qubit del grupo es una carta.
 //   ops:       lista de operaciones. Empieza con la preparación y después solo crece.
 //   cards:     cartas que comparten ese circuito (cada carta sabe qué qubit le toca)
-//   collapsed: si ya se midió
-//   bits:      resultado de la medición, un 0 o 1 por qubit (null hasta medir)
+//   bits:      resultado de la medición por qubit: null mientras esa carta no se midió, 0 o 1 después.
+//              La medición es PARCIAL: al jugar una carta solo se mide su qubit. Las demás cartas del
+//              grupo siguen en superposición, condicionadas por los bits ya medidos (el estado que
+//              queda es el del circuito `ops` filtrado por esos bits y renormalizado).
+//   collapsed: true cuando TODOS los qubits del grupo ya se midieron
 // ---------------------------------------------------------------------------
 function grupo(id, qubits, ops, cards) {
-  return { id, qubits, ops, cards, collapsed: false, bits: null };
+  return { id, qubits, ops, cards, collapsed: false, bits: Array(qubits).fill(null) };
 }
 
 // Mueve una operación k qubits hacia arriba (para cuando se fusionan dos grupos).
 function desplazar([gate, ...a], k) {
   if (gate === 'ry') return [gate, a[0], a[1] + k];
   if (gate === 'cx') return [gate, a[0] + k, a[1] + k];
-  return [gate, a[0] + k]; // 'h', 'x'
+  return [gate, a[0] + k]; // 'h', 'x', 'z'
 }
 
 // Aplica un CNOT entre dos cartas sin colapsar. Si están en grupos distintos, los fusiona: el grupo
@@ -88,6 +91,7 @@ export function aplicarCnot(cards, groups, idControl, idTarget) {
     const k = gc.qubits;
     gc.ops.push(...gt.ops.map((op) => desplazar(op, k)));
     gc.qubits += gt.qubits;
+    gc.bits.push(...(gt.bits || Array(gt.qubits).fill(null))); // los qubits ya medidos conservan su bit
     for (const id of gt.cards) {
       cards[id].group = gc.id;
       cards[id].qubit += k;
@@ -131,8 +135,9 @@ export const CATALOGO = {
   // Con 1 podrían salir cartas casi clásicas; con 0 todas serían 50/50.
   sesgoMaximo: 0.8,
   // Cuántos CNOT se aplican al armar el mazo. Cada uno une dos cartas cuánticas en un par entrelazado.
-  // Con 24 pares quedan las 48 cartas cuánticas emparejadas.
-  entrelazados: 24,
+  // 0 = ninguna carta nace entrelazada: el entrelazamiento solo aparece cuando un jugador juega un CNOT.
+  // (Con 24 quedarían las 48 cartas cuánticas emparejadas.)
+  entrelazados: 0,
 
   // Mazo de puertas, aparte del de cartas. Todas con la misma chance.
   // 'x', 'z' y 'h' se aplican a una carta; 'cnot' a dos (control y target).
@@ -304,7 +309,8 @@ export function checkState(state) {
       else {
         if (!g.cards.includes(c.id)) problemas.push(`${c.id}: no figura en su grupo ${g.id}`);
         if (c.qubit >= g.qubits) problemas.push(`${c.id}: qubit ${c.qubit} fuera del grupo ${g.id}`);
-        if (g.collapsed !== (c.face !== null)) problemas.push(`${c.id}: su cara no coincide con el estado del grupo ${g.id}`);
+        const medida = g.bits?.[c.qubit] != null;
+        if (medida !== (c.face !== null)) problemas.push(`${c.id}: su cara no coincide con el bit medido en el grupo ${g.id}`);
       }
     }
   }
@@ -312,6 +318,8 @@ export function checkState(state) {
     for (const id of g.cards) if (state.cards[id]?.group !== g.id) problemas.push(`grupo ${g.id}: la carta ${id} no apunta de vuelta`);
     // Cada qubit del grupo es una carta, y el circuito no puede usar qubits que no existen
     if (g.cards.length !== g.qubits) problemas.push(`grupo ${g.id}: ${g.qubits} qubits y ${g.cards.length} cartas`);
+    if (!Array.isArray(g.bits) || g.bits.length !== g.qubits) problemas.push(`grupo ${g.id}: bits no tiene un lugar por qubit`);
+    else if (g.collapsed !== g.bits.every((b) => b !== null)) problemas.push(`grupo ${g.id}: collapsed no coincide con los bits medidos`);
     const qubitsDeCartas = g.cards.map((id) => state.cards[id]?.qubit).sort();
     if (qubitsDeCartas.some((q, n) => q !== n)) problemas.push(`grupo ${g.id}: los qubits de sus cartas no son 0..${g.qubits - 1}`);
     for (const op of g.ops) {

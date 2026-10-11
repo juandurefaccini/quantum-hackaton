@@ -44,8 +44,8 @@ h1 { margin: 0; font-size: 28px; letter-spacing: 0.16em; text-transform: upperca
 .badge { font-size: 12px; padding: 4px 10px; border: 2px solid var(--edge); background: var(--teal-dim); box-shadow: 3px 3px 0 var(--edge); }
 
 button { font: inherit; color: var(--ink); background: #2a2723; border: 2px solid var(--edge); box-shadow: 3px 3px 0 var(--edge); padding: 6px 12px; cursor: pointer; transition: transform 0.08s ease, background 0.12s ease; }
-button:hover { background: #37322b; }
-button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--edge); }
+button:where(:not(.card)):hover { background: #37322b; }
+button:where(:not(.card)):active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--edge); }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 button.ghost { background: #24211d; }
 select { font: inherit; color: var(--ink); background: #221f1b; border: 2px solid var(--edge); padding: 4px 8px; }
@@ -55,10 +55,12 @@ section { position: relative; }
 .sec-head { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 2px; }
 .count-pill { font-size: 12px; font-weight: 700; color: var(--teal); background: rgba(34,179,160,0.12); border: 2px solid var(--edge); padding: 1px 8px; box-shadow: 2px 2px 0 var(--edge); }
 
-.hand { display: flex; gap: 8px; flex-wrap: wrap; min-height: 0; align-items: flex-end; justify-content: center; }
-.hand.opp { min-height: 0; gap: 0; --card-w: calc(var(--card-base-w) * 0.7); }
+.hand { display: flex; gap: 8px; flex-wrap: nowrap; min-height: 0; align-items: flex-end; justify-content: center; }
+.hand > * { flex: none; position: relative; }
+/* solape: --ov lo ajusta fitHand() según cuántas cartas entran; --ov-base es el solape mínimo */
+.hand > * + * { margin-left: var(--ov, calc(var(--ov-base, 0px) * -1)); }
+.hand.opp { min-height: 0; gap: 0; --ov-base: 18px; --card-w: calc(var(--card-base-w) * 0.7); }
 .hand.opp .card { pointer-events: none; }
-.hand.opp .card + .card { margin-left: -18px; }
 .hand .card.playable { touch-action: none; }
 
 .card {
@@ -71,8 +73,7 @@ section { position: relative; }
   color: inherit;
   transition: transform 0.12s ease;
 }
-.card, .card:hover, .card:active { background: transparent; border: 0; box-shadow: none; }
-.card:active { transform: none; }
+.card { background: transparent; border: 0; box-shadow: none; }
 .card.playable { outline: 3px solid var(--gold); outline-offset: 2px; box-shadow: 0 0 14px var(--gold); }
 .card.selected { transform: translateY(-8px); outline: 3px solid var(--teal); outline-offset: 2px; box-shadow: 0 0 16px var(--teal); }
 .card.facedown {
@@ -163,7 +164,7 @@ section { position: relative; }
 
 .status { min-height: 18px; font-size: 14px; margin: 0; }
 .hint-box {
-  flex: none; margin-top: 12px; min-height: 64px;
+  flex: none; margin-top: 12px; height: 96px; overflow: hidden;
   display: flex; flex-direction: column; gap: 4px;
   padding: 9px 11px;
   background: rgba(0, 0, 0, 0.34);
@@ -172,11 +173,18 @@ section { position: relative; }
 }
 .hint-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
 .hint-text { margin: 0; font-size: 13px; line-height: 1.35; color: var(--gold); }
-.hint-circuit { display: none; justify-content: center; margin-top: 6px; }
-.hint-circuit.on { display: flex; }
-.hint-circuit svg { max-width: 100%; height: auto; }
+/* resumen de estado de la carta bajo el mouse: reemplaza el texto de ayuda mientras dura el hover */
+.hint-box.show-state .hint-text { display: none; }
+.hint-state { display: none; flex-direction: column; gap: 5px; font-size: 13px; }
+.hint-box.show-state .hint-state { display: flex; }
+.hint-state .st-row { display: flex; align-items: center; gap: 8px; }
+.hint-state .st-row.phase { padding-left: 18px; }
+.hint-state .st-dot { width: 10px; height: 10px; border: 2px solid var(--edge); flex: none; }
+.hint-state .st-ket { min-width: 34px; color: var(--muted); }
+.hint-state .st-pct { font-weight: 700; color: var(--ink); }
+.hint-state .st-face { margin-left: auto; color: var(--muted); }
 
-.layout { display: grid; grid-template-columns: 280px 1fr; gap: 18px; align-items: stretch; flex: 1; min-height: 0; overflow: hidden; }
+.layout { display: grid; grid-template-columns: 280px 1fr; grid-template-rows: minmax(0, 1fr); gap: 18px; align-items: stretch; flex: 1; min-height: 0; overflow: hidden; }
 .board {
   min-width: 0;
   min-height: 0;
@@ -266,7 +274,15 @@ section { position: relative; }
 .chip.gate-z { background: #2b3a7a; }
 .chip.gate-h { background: #1f7a5e; }
 .chip.gate-cnot { background: #7a5a1f; }
-.hand.mine { justify-content: center; padding-top: 2px; gap: 6px; --card-w: calc(var(--card-base-w) * 2); }
+.hand.mine { justify-content: center; padding-top: 14px; gap: 6px; --ov-base: 0px; --card-w: calc(var(--card-base-w) * 2); }
+/* la carta (o el par entrelazado) bajo el mouse pasa al frente y se levanta */
+.hand.mine > :hover { z-index: 6; }
+.hand.mine .card { transition: transform 0.12s ease, background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease; }
+/* .slot es fijo: así el hover no parpadea cuando la carta se levanta y deja de estar bajo el mouse */
+.slot { display: block; }
+.hand.mine .slot:hover .card { transform: translateY(-12px); }
+/* profundidad: cada carta proyecta sombra sobre la que tiene debajo (también las jugables, que pisan su box-shadow) */
+.hand .card { filter: drop-shadow(calc(var(--card-w) * -0.05) calc(var(--card-w) * 0.02) calc(var(--card-w) * 0.05) rgba(0, 0, 0, 0.55)); }
 
 /* --- circuito cuántico en hover --- */
 .circuit-tip {

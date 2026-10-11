@@ -27,7 +27,7 @@ export async function health() {
   }
 }
 
-function bitsFromResults(results, qubits) {
+function bitsFromResults(results, qubits, fixed = []) {
   // El simulador ideal de IonQ devuelve probabilidades con claves = índice decimal
   // de estado (qubit 0 = bit menos significativo). Un QPU devuelve `histogram`
   // con bitstrings. En ambos casos muestreamos UNA vez para colapsar.
@@ -48,18 +48,26 @@ function bitsFromResults(results, qubits) {
   }
   if (!entries.length) throw new Error('IonQ: resultado sin distribución interpretable');
 
-  const total = entries.reduce((s, [, v]) => s + v, 0) || 1;
-  let r = Math.random() * total, acc = 0, idx = entries[entries.length - 1][0];
-  for (const [i, v] of entries) { acc += v; if (r < acc) { idx = i; break; } }
+  // Qubits ya medidos antes: solo valen las muestras que coinciden con ellos (condicionamiento).
+  const compatible = i => fixed.every((b, q) => b == null || ((i >> q) & 1) === b);
+  const usables = entries.filter(([i]) => compatible(i));
+  if (!usables.length) throw new Error('IonQ: ninguna muestra es compatible con los qubits ya medidos');
+
+  const total = usables.reduce((s, [, v]) => s + v, 0) || 1;
+  let r = Math.random() * total, acc = 0, idx = usables[usables.length - 1][0];
+  for (const [i, v] of usables) { acc += v; if (r < acc) { idx = i; break; } }
   return Array.from({ length: qubits }, (_, q) => (idx >> q) & 1);
 }
 
 // Mide el grupo una vez. target: 'simulator' (ideal) o un QPU (ej. 'qpu.aria-1').
-export async function medirGrupo(group, { target = 'simulator', shots = 1, pollMs = 400, timeoutMs = 90000 } = {}) {
+// Con qubits ya medidos se piden más shots para poder quedarse con las muestras compatibles.
+export async function medirGrupo(group, { target = 'simulator', shots, pollMs = 400, timeoutMs = 90000 } = {}) {
+  const fijos = group.bits || [];
+  const nShots = shots ?? (fijos.some(b => b != null) ? 512 : 1);
   const created = await (await fetch(`${base()}/v0.3/jobs`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ target, shots, input: toIonQCircuit(group) }),
+    body: JSON.stringify({ target, shots: nShots, input: toIonQCircuit(group) }),
   })).json();
   if (!created.id) throw new Error(`IonQ: no se creó el job (${created.error || JSON.stringify(created)})`);
 
@@ -73,5 +81,5 @@ export async function medirGrupo(group, { target = 'simulator', shots = 1, pollM
   }
 
   const results = await (await fetch(`${base()}/v0.3/jobs/${created.id}/results`)).json();
-  return bitsFromResults(results, group.qubits);
+  return bitsFromResults(results, group.qubits, fijos);
 }

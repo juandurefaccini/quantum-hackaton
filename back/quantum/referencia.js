@@ -58,15 +58,73 @@ export function distribucion(group) {
   return Array.from(amplitudes(group), (x) => x * x);
 }
 
+// ---------------------------------------------------------------------------
+// MEDICIÓN PARCIAL. group.bits[q] es null mientras el qubit q no se midió, y 0 o 1 después.
+// Los qubits ya medidos condicionan al resto: la distribución es la del circuito completo, filtrada
+// por esos bits y renormalizada. Es exacto porque las puertas posteriores solo tocan qubits sin medir
+// (una carta medida ya no recibe puertas) y conmutan con la proyección de los medidos.
+// ---------------------------------------------------------------------------
+
+// Filtra una distribución conjunta por los bits ya medidos y la renormaliza.
+export function condicionar(p, bits = []) {
+  const out = new Array(p.length).fill(0);
+  let total = 0;
+  for (let i = 0; i < p.length; i++) {
+    let ok = true;
+    for (let q = 0; q < bits.length; q++) {
+      if (bits[q] != null && ((i >> q) & 1) !== bits[q]) { ok = false; break; }
+    }
+    if (ok) { out[i] = p[i]; total += p[i]; }
+  }
+  if (total > 1e-12) for (let i = 0; i < out.length; i++) out[i] /= total;
+  return out;
+}
+
+// [P(0), P(1)] del qubit q dentro de una distribución conjunta.
+export function marginal(p, q) {
+  let p1 = 0;
+  for (let i = 0; i < p.length; i++) if ((i >> q) & 1) p1 += p[i];
+  return [1 - p1, p1];
+}
+
+// Distribución conjunta del grupo condicionada a sus bits medidos. `extra` agrega ops solo para este cálculo.
+export function distribucionCondicionada(group, extra = []) {
+  const g = extra.length ? { qubits: group.qubits, ops: [...group.ops, ...extra] } : group;
+  return condicionar(distribucion(g), group.bits || []);
+}
+
+// [P(0), P(1)] de un qubit del grupo, condicionado.
+export function probabilidadQubit(group, q) {
+  return marginal(distribucionCondicionada(group), q);
+}
+
+// [P(+), P(−)] del qubit q: agrega una H y mide en la base X. Es lo que cambia la puerta Z.
+export function probabilidadFaseQubit(group, q) {
+  return marginal(distribucionCondicionada(group, [['h', q]]), q);
+}
+
+// Elige un índice según la distribución p (r = número al azar en [0, 1)).
+export function elegirIndice(p, r = Math.random()) {
+  let acc = 0;
+  for (let i = 0; i < p.length; i++) { acc += p[i]; if (r < acc) return i; }
+  let last = p.length - 1;
+  while (last > 0 && p[last] <= 0) last--; // por redondeo: nunca un estado imposible
+  return last;
+}
+
+// Muestra TODOS los qubits del grupo, compatible con los ya medidos: devuelve bits[q].
+export function muestrear(group) {
+  const idx = elegirIndice(distribucionCondicionada(group));
+  return Array.from({ length: group.qubits }, (_, q) => (idx >> q) & 1);
+}
+
 // [P(la carta mide 0), P(la carta mide 1)]: lo que ve su dueño. Si la carta está entrelazada, es la
-// probabilidad de la carta sola, sin mirar a su pareja. Una carta ya colapsada es segura.
+// probabilidad de la carta sola, condicionada por lo que ya se midió en su grupo. Una carta ya medida es segura.
 export function probabilidadCarta(state, idCarta) {
   const c = state.cards[idCarta];
   if (!c.group) return null; // carta clásica: no hay nada que calcular
   const g = state.groups[c.group];
-  if (g.collapsed) return g.bits[c.qubit] === 0 ? [1, 0] : [0, 1];
-  const p = distribucion(g);
-  let p1 = 0;
-  for (let i = 0; i < p.length; i++) if ((i >> c.qubit) & 1) p1 += p[i];
-  return [1 - p1, p1];
+  const medido = g.bits?.[c.qubit];
+  if (medido != null) return medido === 0 ? [1, 0] : [0, 1];
+  return probabilidadQubit(g, c.qubit);
 }

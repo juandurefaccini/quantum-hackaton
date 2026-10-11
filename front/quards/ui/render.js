@@ -8,15 +8,14 @@ import * as audio from './audio.js';
 import { log, warn, isDebugVisible, setDebugVisible } from './debug.js';
 import { entangledGroupOf, orderHand } from './entangle.js';
 import { mountQard } from './qard.js';
-import { showCircuitTip, hideCircuitTip, circuitSVG } from './circuit.js';
 import { playCollapse } from './collapse.js';
 
 const SYM = { skip: '⊘', reverse: '⇄', draw2: '+2', wild: '★', wild4: '+4' };
 const GATE_HINT = {
   x: 'X: intercambia las probabilidades de las dos caras.',
-  z: 'Z: cambia la fase (se nota combinada con H).',
+  z: 'Z: invierte la fase (+ ↔ −); no cambia las probabilidades.',
   h: 'H: deja la carta en superposición 50/50.',
-  cnot: 'CNOT: entrelaza dos cartas (control → target).',
+  cnot: 'CNOT: entrelaza dos cartas (control → target). El target puede ser una carta de la IA.',
 };
 const el = (tag, props = {}, ...children) => {
   const node = document.createElement(tag);
@@ -36,6 +35,7 @@ const AI_THINK_MS = 700; // antes de empezar a actuar
 const AI_PREP_MS = 700;  // compuertas (preparación libre)
 const AI_PLAY_MS = 1100; // jugar/robar (cierra el turno)
 const symOf = f => SYM[f.symbol] ?? f.symbol;
+const FACE_COLOR = { red: '#e0463a', blue: '#3a7bd5', green: '#2fae6a', yellow: '#e6b23a', grey: '#6b6358' };
 
 // Preferencia persistente: marcar (o no) las cartas posiblemente jugables.
 const PLAYABLE_KEY = 'quards:markPlayable';
@@ -63,6 +63,21 @@ function animateHandMoves(prevRects, container) {
       { duration: 340, easing: 'cubic-bezier(0.2, 0.9, 0.2, 1)' },
     );
   }
+}
+
+// Ajusta el solape de una mano para que entre en una sola fila.
+// Sin cartas de más no solapa (salvo el --ov-base de la mano); con más, reparte el exceso.
+function fitHand(container) {
+  const items = [...container.children];
+  const n = items.length;
+  if (n < 2) { container.style.removeProperty('--ov'); return; }
+  const cs = getComputedStyle(container);
+  const gap = parseFloat(cs.columnGap) || 0;
+  const base = parseFloat(cs.getPropertyValue('--ov-base')) || 0;
+  const widths = items.reduce((sum, node) => sum + node.offsetWidth, 0);
+  const natural = widths + (gap - base) * (n - 1);
+  const extra = Math.max(0, (natural - container.clientWidth + 1) / (n - 1));
+  container.style.setProperty('--ov', `${-(base + extra)}px`);
 }
 
 // Carta fantasma boca abajo que vuela del mazo a un rect destino. Devuelve la Animation.
@@ -104,7 +119,33 @@ function flyCards(deckEl, targetEl, count) {
   for (let i = 0; i < count; i++) spawnFlyingCard(deckEl, to, { delay: i * 90 });
 }
 
+// Estilos del ojo (espiar). Se inyectan una vez, como los de qard.js.
+const SPY_CSS = `
+  .chip.eye { cursor: pointer; }
+  .chip.eye.active { outline: 2px solid #e6b23a; outline-offset: 2px; }
+  .card.spy-target { outline: 2px solid #e6b23a; outline-offset: 2px; cursor: pointer; }
+  .card.spy-target:hover { filter: brightness(1.3); }
+  .card.spied { position: relative; }
+  .card .spy-mark { position: absolute; top: 6px; right: 8px; font-size: 14px; pointer-events: none; }
+  .spy-toast { display: none; position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 1000;
+    background: #16130f; border: 2px solid #e6b23a; border-radius: 12px; padding: 12px 16px; color: #f1e8d6;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6); min-width: 240px; }
+  .spy-toast.show { display: block; }
+  .spy-toast .spy-head { font-weight: 700; margin-bottom: 10px; }
+  .spy-toast .spy-body { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .spy-toast .spy-text { display: flex; flex-direction: column; gap: 2px; }
+  .spy-toast .spy-text b { font-size: 1.4em; }
+`;
+function ensureSpyStyles() {
+  if (document.getElementById('quards-spy-styles')) return;
+  const tag = document.createElement('style');
+  tag.id = 'quards-spy-styles';
+  tag.textContent = SPY_CSS;
+  document.head.append(tag);
+}
+
 export async function mount(root) {
+  ensureSpyStyles();
   audio.armAudio();
   root.replaceChildren();
 
@@ -119,11 +160,17 @@ export async function mount(root) {
   let level = 'medium';
   let markPlayable = loadFlag(PLAYABLE_KEY);
   let pendingGate = null; // { gate, a }
+  let spyMode = false;     // modo ojo: el próximo clic sobre una carta de la IA la espía
+  let spyResult = null;    // { id, k, face }: lo último espiado, se muestra en el cartel
+  const spied = new Map(); // id de carta del rival -> { k, face }: lo que ya espiaste (se marca con 👁)
   let selectedId = null;
   let press = null;
   let busy = false;
-  let inspectedGroupId = null; // grupo cuya carta se está inspeccionando (hover)
+  let inspected = null; // { id, p }: carta bajo el mouse (resumen de estado en el sidebar)
   const probCache = new Map();
+  const phaseCache = new Map();
+  // La clave incluye el circuito y los bits ya medidos: no se mezcla entre partidas ni entre mediciones.
+  const groupKey = g => JSON.stringify([g.id, g.ops, g.bits]);
   // Manos en el render anterior, para animar los robos (delta de cartas).
   let lastCounts = { me: state.players[0].hand.length, opp: state.players[1].hand.length };
 
@@ -143,12 +190,16 @@ export async function mount(root) {
   const turnEl = el('span', { class: 'turn' });
   const statusEl = el('p', { class: 'status', role: 'status', 'aria-live': 'polite' });
   const hintEl = el('p', { class: 'hint-text', role: 'note', 'aria-live': 'polite' });
-  const circuitBoxEl = el('div', { class: 'hint-circuit' });
+  const hintTitleEl = el('span', { class: 'hint-title' }, 'Info');
+  const stateEl = el('div', { class: 'hint-state' });
+  const hintBoxEl = el('div', { class: 'hint-box' }, hintTitleEl, hintEl, stateEl);
   const logEl = el('div', { class: 'log' });
   const statYouEl = el('span', { class: 'n' }, '0');
   const statAiEl = el('span', { class: 'n' }, '0');
   const statDeckEl = el('span', { class: 'n' }, '0');
   const drawBtn = el('button', { class: 'draw', type: 'button' }, 'Robar');
+  const eyeBtn = el('button', { class: 'chip eye', type: 'button' }, '👁');
+  const spyToastEl = el('div', { class: 'spy-toast', role: 'status', 'aria-live': 'polite' });
   const newBtn = el('button', { class: 'ghost', type: 'button' }, 'Nueva partida');
   const markCb = el('input', { type: 'checkbox' });
   markCb.checked = markPlayable;
@@ -167,52 +218,81 @@ export async function mount(root) {
   // Texto contextual del cuadro informativo (arriba del botón Robar).
   function contextHint() {
     if (state.phase === 'over') return state.winner === 'p1' ? 'Ganaste. Empezá una nueva partida cuando quieras.' : 'Ganó la IA. Probá otra vez.';
-    if (!isHumanTurn()) return 'La IA está pensando… Pasá el mouse por tus cartas para ver su circuito.';
+    if (!isHumanTurn()) return 'La IA está pensando… Pasá el mouse por tus cartas para ver su estado.';
     if (!rules.hasMove(state)) return 'No tenés jugadas posibles: robá una carta (el botón está encendido).';
     return 'Tu turno: jugá una carta o prepará con una puerta.';
   }
 
-  // Dibuja el circuito del grupo inspeccionado dentro del cuadro informativo.
-  function renderBoxCircuit() {
-    const g = inspectedGroupId ? state.groups[inspectedGroupId] : null;
-    if (!g) { circuitBoxEl.replaceChildren(); circuitBoxEl.classList.remove('on'); return; }
-    circuitBoxEl.replaceChildren(circuitSVG(g, { measured: g.collapsed, bits: g.bits }));
-    circuitBoxEl.classList.add('on');
+  // Entrelazada = otro qubit de su grupo sigue sin medir. Su fase no es "de la carta sola".
+  const isEntangled = c => !!c.group && state.groups[c.group].cards.some(x => x !== c.id && !state.cards[x].face);
+  const fmtPhase = (ph, c) => (ph ? `${ph} |${ph}⟩` : (isEntangled(c) ? '— (entrelazada)' : '—'));
+
+  // Resumen del estado de la carta bajo el mouse (probabilidades y fase), en el cuadro Info.
+  function renderState() {
+    const c = inspected && state.cards[inspected.id];
+    hintBoxEl.classList.toggle('show-state', !!c);
+    if (!c) { hintTitleEl.textContent = 'Info'; stateEl.replaceChildren(); return; }
+    const p0 = Math.round((inspected.p?.[0] ?? 0.5) * 100);
+    const phaseTxt = fmtPhase(inspected.ph, c);
+    hintTitleEl.textContent = 'Carta cuántica';
+    stateEl.replaceChildren(
+      ...[0, 1].map(i => el('div', { class: 'st-row' },
+        el('span', { class: 'st-dot', style: `background:${FACE_COLOR[c.outcomes[i].color ?? 'grey'] ?? FACE_COLOR.grey}` }),
+        el('span', { class: 'st-ket' }, `|${i}⟩`),
+        el('span', { class: 'st-pct' }, `${i ? 100 - p0 : p0}%`),
+        el('span', { class: 'st-face' }, symOf(c.outcomes[i])))),
+      el('div', { class: 'st-row phase' },
+        el('span', { class: 'st-ket' }, 'Fase'),
+        el('span', { class: 'st-pct' }, phaseTxt)));
   }
 
   async function probsFor(id) {
     const c = state.cards[id];
     if (!c.group) return null;
     const g = state.groups[c.group];
-    if (g.collapsed) return g.bits[c.qubit] === 0 ? [1, 0] : [0, 1];
-    const key = `${g.id}:${g.ops.length}`;
+    if (g.bits?.[c.qubit] != null) return g.bits[c.qubit] === 0 ? [1, 0] : [0, 1];
+    const key = groupKey(g);
     if (!probCache.has(key)) probCache.set(key, await quantum.probabilidadesGrupo(g));
     return probCache.get(key)[c.qubit];
   }
 
+  // Signo de la fase de la carta: '+' o '−'. null si ya se midió, si está entrelazada o si no está definida.
+  async function phaseFor(id) {
+    const c = state.cards[id];
+    if (!c.group || c.face || isEntangled(c)) return null;
+    const g = state.groups[c.group];
+    const key = groupKey(g);
+    if (!phaseCache.has(key)) phaseCache.set(key, await quantum.probabilidadesFaseGrupo(g));
+    const pp = phaseCache.get(key)?.[c.qubit];
+    if (!pp || Math.abs(pp[0] - 0.5) < 1e-6) return null;
+    return pp[0] > 0.5 ? '+' : '−';
+  }
+
   async function cardEl(id, opts = {}) {
     const c = state.cards[id];
-    const node = el('button', { type: 'button', class: `card k-${c.group ? 'qubit' : 'classic'}` });
+    const node = el('button', { type: 'button', class: `card k-${c.group && !c.face ? 'qubit' : 'classic'}` });
     node.dataset.id = id;
     if (opts.playable) node.classList.add('playable');
     if (opts.selected) node.classList.add('selected');
     if (opts.facedown) { node.classList.add('facedown', 'back'); return node; }
     const grad = f => f.color ?? 'grey';
+    let probs = null, phase = null;
     if (c.face) {
       mountQard(node, { kind: 'classic', color: grad(c.face), symbol: symOf(c.face) });
     } else {
-      const p = await probsFor(id);
+      const p = probs = await probsFor(id);
+      phase = await phaseFor(id);
       mountQard(node, {
         kind: 'quantum',
         color0: grad(c.outcomes[0]), sym0: symOf(c.outcomes[0]),
         color1: grad(c.outcomes[1]), sym1: symOf(c.outcomes[1]),
         prob0: Math.round((p?.[0] ?? 0.5) * 100),
+        phase,
       });
     }
-    if (c.group) {
-      const g = state.groups[c.group];
-      const show = () => { inspectedGroupId = g.id; renderBoxCircuit(); showCircuitTip(node, g); };
-      const leave = () => { inspectedGroupId = null; renderBoxCircuit(); hideCircuitTip(); };
+    if (c.group && !c.face) {
+      const show = () => { inspected = { id, p: probs, ph: phase }; renderState(); };
+      const leave = () => { inspected = null; renderState(); };
       node.addEventListener('pointerenter', show);
       node.addEventListener('focus', show);
       node.addEventListener('pointerleave', leave);
@@ -297,7 +377,6 @@ export async function mount(root) {
   // ---------- flujo ----------
   async function doPlay(id) {
     if (!isHumanTurn() || !rules.canPlay(state, id)) return;
-    hideCircuitTip();
     audio.blip();
     const srcNode = handEl.querySelector(`[data-id="${id}"]`);
     const srcRect = srcNode ? srcNode.getBoundingClientRect() : null;
@@ -324,6 +403,7 @@ export async function mount(root) {
 
   async function onGate(gate) {
     if (!isHumanTurn()) return;
+    spyMode = false;
     // Volver a presionar la misma puerta cancela la selección pendiente.
     if (pendingGate && pendingGate.gate === gate) {
       pendingGate = null;
@@ -333,6 +413,56 @@ export async function mount(root) {
     }
     audio.tick();
     await render();
+  }
+
+  async function onEye() {
+    if (!isHumanTurn()) return;
+    if (spyMode) spyMode = false;
+    else if (state.players[0].spies > 0) { spyMode = true; pendingGate = null; selectedId = null; }
+    else { hintEl.textContent = 'No te quedan espías.'; return; }
+    audio.tick();
+    await render();
+  }
+
+  // Clic sobre una carta de la IA: espiarla (modo ojo) o elegirla de target de un CNOT.
+  async function onRivalTap(id) {
+    if (!isHumanTurn()) return;
+    if (spyMode) {
+      const r = rules.spyCard(state, id);
+      spyMode = false;
+      if (r.error) hintEl.textContent = r.error;
+      else { spyResult = r; spied.set(id, { k: r.k, face: r.face }); audio.blip(); }
+      await render();
+      return;
+    }
+    if (pendingGate?.gate === 'cnot' && pendingGate.a !== null) {
+      const r = rules.applyGate(state, 'cnot', pendingGate.a, id);
+      pendingGate = null;
+      if (r.error) hintEl.textContent = r.error;
+      audio.blip();
+      await render();
+    }
+  }
+
+  function spiedLabel(info) {
+    return info.k === null ? `Espiada: ${rules.describeFace(info.face)}` : `Espiada: |${info.k}⟩ = ${rules.describeFace(info.face)}`;
+  }
+
+  // Cartel con el resultado del ojo: el estado revelado y la carta asociada.
+  function renderSpy() {
+    if (spyResult && (state.phase !== 'play' || state.turn.current !== 0)) spyResult = null;
+    spyToastEl.classList.toggle('show', !!spyResult);
+    if (!spyResult) { spyToastEl.replaceChildren(); return; }
+    const { k, face } = spyResult;
+    const card = mountQard(el('div'), { kind: 'classic', color: face.color ?? 'grey', symbol: symOf(face) });
+    card.style.setProperty('--qard-w', '84px');
+    spyToastEl.replaceChildren(
+      el('div', { class: 'spy-head' }, '👁 Espiaste una carta de la IA'),
+      el('div', { class: 'spy-body' }, card,
+        el('div', { class: 'spy-text' },
+          el('b', {}, k === null ? 'Cara fija' : `Estado |${k}⟩`),
+          el('span', {}, rules.describeFace(face)))),
+      el('button', { class: 'ghost', type: 'button', onclick: () => { spyResult = null; renderSpy(); } }, 'Cerrar'));
   }
 
   async function onCardTap(id) {
@@ -358,7 +488,6 @@ export async function mount(root) {
 
   function startPress(id, event) {
     if (!isHumanTurn()) return;
-    hideCircuitTip();
     press = { id, el: event.currentTarget, startX: event.clientX, startY: event.clientY, active: false, ghost: null };
   }
   function isOver(event, node) {
@@ -392,6 +521,7 @@ export async function mount(root) {
     }
     onCardTap(p.id);
   }
+  window.addEventListener('resize', () => { fitHand(handEl); fitHand(oppHandEl); });
   window.addEventListener('pointermove', onPointerMove);
   window.addEventListener('pointerup', onPointerUp);
   window.addEventListener('pointercancel', () => { if (press) { press.ghost?.remove(); press.el?.classList.remove('dragging'); discardEl.classList.remove('drop-target'); press = null; } });
@@ -402,10 +532,13 @@ export async function mount(root) {
     else hintEl.textContent = 'Elegí una carta de tu mano y soltala acá para jugarla.';
   });
   drawBtn.addEventListener('click', async () => { if (isHumanTurn() && !rules.hasMove(state)) { audio.blip(); rules.draw(state); await render(); scheduleAI(); } });
+  eyeBtn.addEventListener('click', onEye);
   levelSel.addEventListener('change', () => { level = levelSel.value; });
   engineSel.addEventListener('change', () => { quantum.setEngine(engineSel.value); log(`motor → ${engineSel.value}`); render(); });
   newBtn.addEventListener('click', async () => {
     state = rules.newGame({ seed: Date.now() % 100000 });
+    probCache.clear(); phaseCache.clear();
+    spyMode = false; spyResult = null; spied.clear();
     lastCounts = { me: state.players[0].hand.length, opp: state.players[1].hand.length };
     pendingGate = null; selectedId = null; busy = false;
     await render();
@@ -455,7 +588,7 @@ export async function mount(root) {
 
   // ---------- render ----------
   async function render() {
-    hideCircuitTip();
+    inspected = null; // los nodos de la mano se reconstruyen: se vuelve a fijar con el próximo hover
     const prevHandRects = new Map();
     handEl.querySelectorAll('.card').forEach(node => prevHandRects.set(node.dataset.id, node.getBoundingClientRect()));
     const me = state.players[0], opp = state.players[1];
@@ -469,7 +602,15 @@ export async function mount(root) {
            ...(hasIonQ ? [el('option', { value: 'ionq' }, 'IonQ')] : [])]));
     engineSel.value = quantum.kind();
 
-    oppHandEl.replaceChildren(...opp.hand.map(() => el('div', { class: 'card facedown back' })));
+    // Cartas de la IA: boca abajo. Se pueden elegir (ojo o target de CNOT) sin exponer su id en el DOM.
+    const rivalTargetable = isHumanTurn() && (spyMode || (pendingGate?.gate === 'cnot' && pendingGate.a !== null));
+    oppHandEl.replaceChildren(...opp.hand.map(id => {
+      const node = el('div', { class: 'card facedown back' });
+      const info = spied.get(id);
+      if (info) { node.classList.add('spied'); node.title = spiedLabel(info); node.append(el('span', { class: 'spy-mark' }, '👁')); }
+      if (rivalTargetable) { node.classList.add('spy-target'); node.addEventListener('click', () => onRivalTap(id)); }
+      return node;
+    }));
     oppCountEl.textContent = `${opp.hand.length} · ${opp.gates.length}🔑`;
     statYouEl.textContent = me.hand.length;
     statAiEl.textContent = opp.hand.length;
@@ -485,15 +626,17 @@ export async function mount(root) {
       const isTarget = pendingGate && !state.cards[id].face;
       const node = await cardEl(id, { playable: playable || isTarget, selected: selectedId === id, onPointerDown: startPress });
       const group = entangledGroupOf(state, id, me.hand);
-      if (!group) { handEl.append(node); continue; }
+      if (!group) { handEl.append(el('div', { class: 'slot' }, node)); continue; }
       let pod = pods.get(group.id);
       if (!pod) {
         pod = el('div', { class: 'ent-group', title: 'Cartas entrelazadas: se miden juntas' });
         pods.set(group.id, pod);
         handEl.append(pod);
       }
-      pod.append(node);
+      pod.append(el('div', { class: 'slot' }, node));
     }
+    fitHand(handEl);
+    fitHand(oppHandEl);
     animateHandMoves(prevHandRects, handEl);
 
     gatesEl.replaceChildren();
@@ -504,15 +647,24 @@ export async function mount(root) {
       onclick: () => onGate(gate),
     }, gate.toUpperCase())));
 
+    const spies = me.spies ?? 0;
+    eyeBtn.textContent = `👁 ${spies}`;
+    eyeBtn.disabled = !isHumanTurn() || (spies <= 0 && !spyMode);
+    eyeBtn.classList.toggle('active', spyMode);
+    eyeBtn.title = `Espiar una carta de la IA (${spies} disponible${spies === 1 ? '' : 's'})`;
+
     turnEl.textContent = state.phase === 'play' ? (state.turn.current === 0 ? 'Tu turno' : 'Turno de la IA…') : '';
     if (state.phase === 'over') statusEl.textContent = state.winner === 'p1' ? '¡Ganaste!' : 'Ganó la IA.';
-    else if (pendingGate) statusEl.textContent = pendingGate.gate === 'cnot' ? 'CNOT: elegí control y después target.' : `${pendingGate.gate.toUpperCase()}: elegí una carta tuya.`;
+    else if (spyMode) statusEl.textContent = 'Ojo: elegí una carta de la IA para espiarla.';
+    else if (pendingGate) statusEl.textContent = pendingGate.gate === 'cnot' ? 'CNOT: elegí control (tuyo) y después target (tuyo o de la IA).' : `${pendingGate.gate.toUpperCase()}: elegí una carta tuya.`;
     else statusEl.textContent = isHumanTurn() ? 'Prepará con puertas (gratis) y jugá una carta.' : 'La IA está pensando…';
 
     if (pendingGate) hintEl.textContent = GATE_HINT[pendingGate.gate];
+    else if (spyMode) hintEl.textContent = 'Te muestro uno de los estados posibles de esa carta y la carta asociada.';
     else if (selectedId) hintEl.textContent = 'Arrastrá la carta al descarte o clickeá el descarte para jugarla.';
     else hintEl.textContent = contextHint();
-    renderBoxCircuit();
+    renderState();
+    renderSpy();
 
     // Robar es la única jugada posible: el botón se enciende.
     const mustDraw = isHumanTurn() && !rules.hasMove(state);
@@ -535,10 +687,7 @@ export async function mount(root) {
         el('div', { class: 'stat' }, statDeckEl, el('span', { class: 'k' }, 'Mazo'))),
       el('h2', {}, 'Historial'),
       logEl,
-      el('div', { class: 'hint-box' },
-        el('span', { class: 'hint-title' }, 'Info'),
-        hintEl,
-        circuitBoxEl),
+      hintBoxEl,
       el('div', { class: 'sidebar-draw' }, drawBtn)),
     el('main', { class: 'board' },
       el('section', { class: 'opponent' },
@@ -548,7 +697,7 @@ export async function mount(root) {
         el('div', { class: 'pile' }, el('span', { class: 'label' }, 'Mazo'), deckEl),
         el('div', { class: 'pile' }, el('span', { class: 'label' }, 'Descarte'), discardEl)),
       el('section', { class: 'mine' }, handEl),
-      el('section', { class: 'gates-row' }, el('span', { class: 'label' }, 'Puertas'), gatesEl)));
+      el('section', { class: 'gates-row' }, el('span', { class: 'label' }, 'Puertas'), gatesEl, el('span', { class: 'label' }, 'Ojo'), eyeBtn)));
 
   const app = el('div', { class: 'app' },
     el('header', {},
@@ -559,7 +708,7 @@ export async function mount(root) {
         el('label', {}, 'IA ', levelSel), el('label', {}, 'Motor ', engineSel), newBtn)),
     layout);
 
-  root.append(bg, crt, app);
+  root.append(bg, crt, app, spyToastEl);
   log(`Quards lista (motor ${quantum.kind()}).`);
   await render();
   await dealAnimation();

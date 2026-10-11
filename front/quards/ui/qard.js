@@ -119,27 +119,26 @@ export const QARD_CSS = `
   }
 
   /* ========================================================
-     EFECTO HOVER COMPARTIDO (MANTIENE LA SIMETRÍA VISUAL)
+     HOVER ÚNICO: el de la carta clásica, igual para todas.
+     (La probabilidad y la fase ya no se revelan acá: van en el cuadro Info.)
      ======================================================== */
-  .qard-card:hover {
+  .qard-card:hover,
+  .slot:hover > .qard-card {
     background-color: #ffffff;
     border-color: #ffffff;
     box-shadow: 0 0 1.25em rgba(255, 255, 255, 0.45);
   }
 
-  .qard-card:hover .inner-canvas {
+  .qard-card:hover .inner-canvas,
+  .slot:hover > .qard-card .inner-canvas {
     inset: 1.7em 0.4em 1.7em 0.4em;
     border-radius: 1.7em 0px 1.7em 0px;
   }
 
-  .qard-card:hover .ket-badge {
+  .qard-card:hover .ket-badge,
+  .slot:hover > .qard-card .ket-badge {
     color: #000000;
     font-weight: 500;
-  }
-
-  .qard-card:hover .phase-badge,
-  .qard-card:hover .prob-badge {
-    opacity: 1;
   }
 `;
 
@@ -153,12 +152,14 @@ export function ensureQardStyles(doc = document) {
 }
 
 // --- plantillas de contenido (mismo DOM que el prototipo) ---
-function quantumInner({ color0, sym0, color1, sym1, prob0 = 50, phase = '+' }) {
+// phase = '+' | '−' (signo de la fase) o null si no está definida (p. ej. carta entrelazada).
+function quantumInner({ color0, sym0, color1, sym1, prob0 = 50, phase = null }) {
   const prob1 = 100 - prob0;
+  const fase = phase ? `FASE: ${phase} |${phase}⟩` : 'FASE: —';
   return `
     <div class="header">
       <span class="ket-badge">|0⟩</span>
-      <span class="phase-badge">FASE: ${phase} |${phase}⟩</span>
+      <span class="phase-badge">${fase}</span>
     </div>
 
     <div class="inner-canvas">

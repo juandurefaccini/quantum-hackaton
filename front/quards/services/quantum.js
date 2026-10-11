@@ -26,28 +26,26 @@ export async function probabilidadCarta(state, id) {
   return hasQollab ? qiskit.probabilidadCarta(state, id) : referencia.probabilidadCarta(state, id);
 }
 
+// Todas las probabilidades salen condicionadas por los qubits del grupo que ya se midieron (group.bits).
 export async function probabilidadesGrupo(group) {
   if (hasQollab) return qiskit.probabilidadesGrupo(group);
-  const p = referencia.distribucion(group);
-  return Array.from({ length: group.qubits }, (_, q) => {
-    let p1 = 0;
-    for (let i = 0; i < p.length; i++) if ((i >> q) & 1) p1 += p[i];
-    return [1 - p1, p1];
-  });
+  const p = referencia.distribucionCondicionada(group);
+  return Array.from({ length: group.qubits }, (_, q) => referencia.marginal(p, q));
 }
 
+// [P(+), P(−)] de cada qubit (base X). Cambia con la puerta Z; no colapsa nada.
 export async function probabilidadesFaseGrupo(group) {
-  return hasQollab ? qiskit.probabilidadesFaseGrupo(group) : null;
+  if (hasQollab) return qiskit.probabilidadesFaseGrupo(group);
+  return Array.from({ length: group.qubits }, (_, q) => referencia.probabilidadFaseQubit(group, q));
 }
 
 // --- Medición (colapso) ---
+// Devuelve una muestra de TODOS los qubits del grupo, compatible con los que ya estaban medidos
+// (group.bits). Quien llama solo usa el bit de la carta jugada: la medición es parcial.
 export async function medirGrupo(group) {
   if (engine === 'qiskit') return qiskit.medirGrupo(group, backend);
   if (engine === 'ionq') return ionq.medirGrupo(group);
-  const p = referencia.distribucion(group);
-  let r = Math.random(), acc = 0, idx = p.length - 1;
-  for (let i = 0; i < p.length; i++) { acc += p[i]; if (r < acc) { idx = i; break; } }
-  return Array.from({ length: group.qubits }, (_, q) => (idx >> q) & 1);
+  return referencia.muestrear(group);
 }
 
 export async function ionqHealth() {
