@@ -13,6 +13,7 @@ import { playCollapse } from './collapse.js';
 import { playSuperpose } from './superpose.js';
 import { mountGlitchCard, disposeAllGlitch } from './glitch.js';
 import { showCircuitOverlay, hideCircuitOverlay } from './circuit-overlay.js';
+import { bootStep } from './boot.js';
 
 const SYM = { skip: '⊘', reverse: '⇄', draw2: '+2', wild: '★', wild4: '+4' };
 const GATE_HINT = {
@@ -208,13 +209,15 @@ export async function mount(root) {
   const bg = el('canvas', { class: 'bg', width: 320, height: 180 });
   const crt = el('div', { class: 'crt' });
   try { stopBg = startBackground(bg); } catch (error) { warn(`fondo WebGL no disponible: ${error?.message ?? error}`); }
+  bootStep(`Motor cuántico (${quantum.kind()})`);
 
   const health = await quantum.ionqHealth().catch(() => ({ ok: false, hasKey: false }));
   const hasIonQ = !quantum.isQollab() && health.ok && health.hasKey;
+  bootStep(hasIonQ ? 'Backend IonQ conectado' : 'Backend local');
 
   let state = rules.newGame({ seed: Date.now() % 100000 });
   let level = 'medium';
-  let markPlayable = loadFlag(PLAYABLE_KEY);
+  let markPlayable = true;
   let pendingGate = null; // { gate, a }
   let spyMode = false;     // modo ojo: el próximo clic sobre una carta de la IA la espía
   let spyResult = null;    // { id, outcomes, prob0 }: lo último espiado, se muestra en el cartel
@@ -224,6 +227,7 @@ export async function mount(root) {
   let busy = false;
   let inspectedGate = null; // tipo de puerta bajo el mouse (su descripción va en el panel de Info)
   let inspected = null; // { id, p }: carta bajo el mouse (resumen de estado en el panel de info)
+  let hoverId = null; // id de la carta bajo el mouse: se preserva a través de los re-renders
   let leaveTimer = null; // da tiempo a llegar con el mouse al botón "Ver circuito"
   const probCache = new Map();
   const phaseCache = new Map();
@@ -253,14 +257,14 @@ export async function mount(root) {
   const activeColorEl = el('span', { class: 'active-color' });
   const hintBoxEl = el('div', { class: 'hint-box' }, hintTitleEl, hintEl, gateNextEl, stateEl, colorPickEl);
   hintBoxEl.addEventListener('pointerenter', () => clearTimeout(leaveTimer));
-  hintBoxEl.addEventListener('pointerleave', () => { if (inspected) { inspected = null; renderState(); } });
+  hintBoxEl.addEventListener('pointerleave', () => { if (inspected) { inspected = null; hoverId = null; renderState(); } });
   const drawBtn = el('button', { class: 'draw', type: 'button' }, 'Robar');
   const eyeBtn = el('button', { class: 'chip eye eye-big', type: 'button' });
   const eyeNextEl = el('span', { class: 'eye-next' });
   const spyToastEl = el('div', { class: 'spy-toast', role: 'status', 'aria-live': 'polite' });
   const newBtn = el('button', { class: 'ghost', type: 'button' }, 'Nueva partida');
   const markCb = el('input', { type: 'checkbox' });
-  markCb.checked = markPlayable;
+  markCb.checked = true;
   markCb.addEventListener('change', () => {
     markPlayable = markCb.checked;
     try { localStorage.setItem(PLAYABLE_KEY, markPlayable ? '1' : '0'); } catch { /* sin storage */ }
@@ -412,12 +416,22 @@ export async function mount(root) {
       });
     }
     if (c.group) {
-      const show = () => { clearTimeout(leaveTimer); fx?.setHover(true); inspected = { id, p: probs, ph: phase }; renderState(); };
-      const leave = () => { clearTimeout(leaveTimer); fx?.setHover(false); leaveTimer = setTimeout(() => { inspected = null; renderState(); }, 700); };
+      const show = () => { clearTimeout(leaveTimer); fx?.setHover(true); hoverId = id; inspected = { id, p: probs, ph: phase }; renderState(); };
+      const leave = () => {
+        clearTimeout(leaveTimer);
+        fx?.setHover(false);
+        leaveTimer = setTimeout(() => {
+          if (hoverId !== id) return; // otro hover lo reemplazó
+          if (document.querySelector(`.card[data-id="${id}"]:hover`)) return; // el puntero sigue sobre la carta
+          hoverId = null; inspected = null; renderState();
+        }, 700);
+      };
       node.addEventListener('pointerenter', show);
       node.addEventListener('focus', show);
       node.addEventListener('pointerleave', leave);
       node.addEventListener('blur', leave);
+      // Si esta carta ya estaba bajo el mouse, re-fijamos su info para que el re-render no la borre.
+      if (hoverId === id) inspected = { id, p: probs, ph: phase };
     }
     if (opts.onPointerDown) node.addEventListener('pointerdown', event => opts.onPointerDown(id, event));
     return node;
@@ -691,7 +705,7 @@ export async function mount(root) {
       document.body.append(ghost);
       press.el.classList.add('dragging');
       document.body.classList.add('is-dragging');
-      inspected = null; renderState();
+      inspected = null; hoverId = null; renderState();
     }
     if (press.active) {
       press.ghost.style.left = `${event.clientX}px`;
@@ -753,6 +767,7 @@ export async function mount(root) {
     spyMode = false; spyResult = null; spied.clear();
     lastCounts = { me: state.players[0].hand.length, opp: state.players[1].hand.length };
     pendingGate = null; selectedId = null; busy = false;
+    hoverId = null; inspected = null;
     disposeAllGlitch(); // frenar los shaders de glitch de las cartas viejas
     await render();
     dealAnimation();
@@ -821,7 +836,7 @@ export async function mount(root) {
   async function renderNow() {
     clearTimeout(leaveTimer);
     inspectedGate = null;
-    inspected = null; // los nodos de la mano se reconstruyen: se vuelve a fijar con el próximo hover
+    inspected = null; // los nodos de la mano se reconstruyen: `cardEl` re-fija la carta bajo el mouse (hoverId)
     const prevHandRects = new Map();
     handEl.querySelectorAll('.card').forEach(node => prevHandRects.set(node.dataset.id, node.getBoundingClientRect()));
     const me = state.players[0], opp = state.players[1];
@@ -954,10 +969,7 @@ export async function mount(root) {
   const app = el('div', { class: 'app' },
     el('header', {},
       el('div', { class: 'header-left' }, el('h1', {}, 'Qards'), badgeEl, turnEl),
-      el('div', { class: 'header-right' },
-        el('label', { class: 'toggle', title: 'Resaltar las cartas que podrían jugarse' }, markCb, 'Jugables'),
-        el('label', { class: 'toggle', title: 'Mostrar el panel de debug' }, debugCb, 'Debug'),
-        el('label', {}, 'IA ', levelSel), el('label', {}, 'Motor ', engineSel), newBtn)),
+      el('div', { class: 'header-right' }, newBtn)),
     layout);
 
   // Atribución exigida por el hackathon: queda visible en el proyecto mientras corre.
@@ -965,7 +977,9 @@ export async function mount(root) {
 
   root.append(bg, crt, app, creditsEl, spyToastEl);
   log(`Qards lista (motor ${quantum.kind()}).`);
+  bootStep('Repartiendo cartas');
   await render();
   await dealAnimation();
+  bootStep('Listo');
   scheduleAI();
 }
