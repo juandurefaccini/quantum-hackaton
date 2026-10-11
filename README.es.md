@@ -4,6 +4,8 @@ Topics (configuración del repo): qiskit, quantum-game, ionq, quantum-computing,
 
 # Quards — UNO cuántico
 
+[English](README.md) · [Español](README.es.md)
+
 **Cada carta es un qubit:** tiene dos caras posibles a la vez y colapsa a una sola recién cuando la jugás.
 
 ![Una jugada midiéndose](assets/demo.gif)

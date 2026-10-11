@@ -4,6 +4,8 @@ Topics (repo settings): qiskit, quantum-game, ionq, quantum-computing, unocards,
 
 # Quards — quantum UNO
 
+[English](README.md) · [Español](README.es.md)
+
 **Every card is a qubit:** it holds two possible faces at once and only collapses to one when you play it.
 
 ![A play being measured](assets/demo.gif)
