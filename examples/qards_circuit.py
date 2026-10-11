@@ -110,7 +110,34 @@ hzh_is_x()
 
 
 # ---------------------------------------------------------------------------
-# 5) IonQ (opcional, no verificado en este repo).
+# 5) El circuito real del juego (los `ops` del motor).
+# ---------------------------------------------------------------------------
+# El motor (back/estado.js) guarda el circuito de cada grupo como una lista PLANA
+# de operaciones (`ops`), y back/quantum/qiskit.js las traduce 1:1 a Qiskit. Esto es
+# un grupo entrelazado REAL, tal como sale del motor: dos cartas + un CNOT.
+OPS_REALES = [["ry", -1.5986421272456757, 0], ["ry", 1.8403951835582866, 1], ["cx", 0, 1]]
+
+
+def circuito_del_juego(ops):
+    qc = QuantumCircuit(2)   # el grupo tiene 2 qubits (uno por carta)
+    for gate, *a in ops:
+        if gate == "ry":
+            qc.ry(a[0], a[1])
+        elif gate == "cx":
+            qc.cx(a[0], a[1])
+        elif gate in ("h", "x", "z"):
+            getattr(qc, gate)(a[0])
+        else:
+            raise ValueError(gate)
+    return qc
+
+
+print("\nEl circuito REAL del motor, como Qiskit (ops -> QuantumCircuit):")
+print(circuito_del_juego(OPS_REALES).draw(output="text"))
+
+
+# ---------------------------------------------------------------------------
+# 6) IonQ (opcional, no verificado en este repo).
 # ---------------------------------------------------------------------------
 # Para correr el mismo circuito en IonQ hace falta un token. Con qiskit-ionq:
 #
