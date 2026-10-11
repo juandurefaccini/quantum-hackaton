@@ -79,7 +79,8 @@ Pegá el Markdown de **[`PROJECT-CARD.md`](PROJECT-CARD.md)** (inglés) en la pe
 - [ ] **Nueva partida** reinicia el tablero y el panel Info.
 - [ ] **Consola:** sin errores en rojo (el panel **Debug** del header también ayuda).
 - [ ] Cambiar la IA a **Difícil** y comprobar que sigue jugable.
-- [ ] **Enlaces:** el repo del Project Card abre sin login; el video `<VIDEO_URL>` abre sin login.
+- [ ] **Enlaces:** el repo del Project Card abre sin login; los tres videos (EN, ES y el extra solo EN)
+      abren sin login.
 - [ ] **IonQ (opcional):** Select QPU → simulador de IonQ → Run. El **primer** colapso usa el job
       de IonQ; a partir del segundo, como IonQ admite **un solo job por ejecución**, el juego sigue
       midiendo con el simulador de referencia (explicado en la card). Verificá que **no se rompe**.
