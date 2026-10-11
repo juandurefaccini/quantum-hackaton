@@ -14,7 +14,7 @@ Grabación de pantalla con **voz en off** (no hace falta aparecer). Duración ob
   hasta conseguirlos):
   1. **Una carta cuántica jugable** con probabilidad intermedia (ej. ~70/30) para narrar el colapso.
   2. **Un `CNOT` en la mano** para entrelazar dos cartas propias (si no lo tenés al inicio, jugá 2–3
-     turnos: las puertas se otorgan cada 2 turnos propios).
+     turnos: las puertas se otorgan cada turno propio).
   3. **Una `H` sobre una carta ya marcada con `Z`** (o cualquier carta) para explicar que la fase se
      convierte en probabilidad.
 - **Qollab abierto** en otra pestaña, con el proyecto cargado y el simulador local seleccionado,
@@ -80,7 +80,7 @@ Mostrá el tablero levantando en Qollab. Cerrá con el pie de atribución visibl
 ## Plan B si algo falla
 
 - **No juega una carta:** verificá que sea jugable (marcada por el contorno dorado). Si no, **Robar**.
-- **No aparece el `CNOT`:** seguí jugando hasta recibirlo (se otorga cada 2 turnos propios) o grabá el
+- **No aparece el `CNOT`:** seguí jugando hasta recibirlo (se otorga cada turno propio) o grabá el
   entrelazado en una segunda pasada y unilo en la edición.
 - **IonQ elegido por error:** volvé a **Select QPU → simulador local**; en IonQ solo hay **un job por
   ejecución**.

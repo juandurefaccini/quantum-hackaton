@@ -222,7 +222,6 @@ export async function mount(root) {
   let selectedId = null;
   let press = null;
   let busy = false;
-  let recent = []; // narraciones recientes (máx 3) que se muestran en el panel Info
   let inspectedGate = null; // tipo de puerta bajo el mouse (su descripción va en el panel de Info)
   let inspected = null; // { id, p }: carta bajo el mouse (resumen de estado en el panel de info)
   let leaveTimer = null; // da tiempo a llegar con el mouse al botón "Ver circuito"
@@ -298,12 +297,10 @@ export async function mount(root) {
     return `${verb} ${rules.describeFace(c.face)}${collapse}.${verdict}`;
   }
 
-  // Guarda una narración para el panel Info (quedan las últimas 3) y la manda también al panel Debug.
+  // La narración de la jugada va solo al panel Debug: el panel Info del centro muestra únicamente
+  // info de las cartas (estado/probabilidades/fase al pasar el mouse), nunca jugadas anteriores.
   function pushEvent(text) {
-    if (!text) return;
-    recent.push(text);
-    if (recent.length > 3) recent.shift();
-    log(text);
+    if (text) log(text);
   }
 
   // Entrelazada = otro qubit de su grupo sigue sin medir. Su fase no es "de la carta sola".
@@ -753,7 +750,6 @@ export async function mount(root) {
   newBtn.addEventListener('click', async () => {
     state = rules.newGame({ seed: Date.now() % 100000 });
     probCache.clear(); phaseCache.clear();
-    recent = [];
     spyMode = false; spyResult = null; spied.clear();
     lastCounts = { me: state.players[0].hand.length, opp: state.players[1].hand.length };
     pendingGate = null; selectedId = null; busy = false;
@@ -929,7 +925,6 @@ export async function mount(root) {
     if (pendingGate) hintEl.textContent = GATE_HINT[pendingGate.gate];
     else if (spyMode) hintEl.textContent = 'Ojo: elegí una carta cuántica de la IA (las resaltadas) y te muestro la carta completa: las dos caras y sus probabilidades.';
     else if (selectedId) hintEl.textContent = 'Arrastrá la carta al descarte o clickeá el descarte para jugarla.';
-    else if (recent.length) hintEl.textContent = recent.join('\n');
     else hintEl.textContent = contextHint();
     renderState();
     renderSpy();

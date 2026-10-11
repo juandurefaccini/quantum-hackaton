@@ -25,7 +25,7 @@ documentación están en **español**.
 ```bash
 node front/qards/dev-server.mjs          # servidor local (http://localhost:8000) + proxy IonQ
 cd front/qards && npm test               # tests (node --test)
-node front/qards/build.mjs               # -> front/qards.zip (para Qollab)
+node qollab/build.mjs                     # -> bundle plano para Qollab en qollab/app/
 node utils/zip.js                         # -> quantum-hackaton.zip (repo entero)
 ```
 

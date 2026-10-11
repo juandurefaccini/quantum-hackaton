@@ -114,7 +114,7 @@ control becomes, once you measure the control, ~90 % in whichever bit the contro
 is a fair coin, but the linked card is then pinned). Use it to choose *when* a card's uncertainty
 resolves. It can also entangle one of the opponent's cards (the control stays yours).
 
-Cost: gates are scarce — you get **1 every 2 of your turns** and hold at most **3** — and **a card that
+Cost: you get **1 gate every turn** but hold at most **3** — and **a card that
 has been measured is classical: it takes no more gates.** Every move above is a real trade-off, not a
 free reroll.
 

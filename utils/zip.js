@@ -11,7 +11,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { deflateRawSync } from 'node:zlib';
 
@@ -172,6 +172,7 @@ function main() {
   }
 
   mkdirSync(dirname(outputPath), { recursive: true });
+  rmSync(outputPath, { force: true });
   const zip = buildZip(entries);
   writeFileSync(outputPath, zip);
 

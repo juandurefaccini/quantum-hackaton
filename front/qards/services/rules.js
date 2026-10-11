@@ -11,9 +11,9 @@ const SYM_ES = { skip: 'salta', reverse: 'reversa', draw2: '+2', wild: 'comodín
 //   maximo:     tope de cargas acumuladas
 // Variante "5 por partida": { inicial: 5, cadaTurnos: 0, maximo: 5 }.
 export const ESPIAR = { inicial: 1, cadaTurnos: 2, maximo: 2 };
-// PUERTAS (preparación libre). Se recibe una cada `cadaTurnos` turnos PROPIOS (el 1.º, el 3.º, el 5.º…
-// con cadaTurnos = 2) y no se acumulan más de `maximo` en la mano. Ajustá estos dos números para el balance.
-export const PUERTAS = { cadaTurnos: 2, maximo: 3 };
+// PUERTAS (preparación libre). Se recibe una en cada turno PROPIO (cadaTurnos = 1) y no se acumulan
+// más de `maximo` en la mano. Ajustá estos dos números para el balance.
+export const PUERTAS = { cadaTurnos: 1, maximo: 3 };
 // Si es true, el target de un CNOT puede ser una carta de la mano del rival (el control sigue siendo tuyo).
 export const CNOT_SOBRE_RIVAL = true;
 

@@ -7,15 +7,13 @@ en [`engines.md`](engines.md).
 
 Problemas detectados en las revisiones, ya corregidos:
 
-> **Dónde se lee el resultado de una medición:** en el panel **Info** (arriba del botón Robar). Ahora
-> guarda las **últimas 3 líneas** y cada narración también se emite al panel **Debug** (que antes solo
-> decía `Midiendo con …`).
+> **Dónde se lee el resultado de una medición:** en el panel **Debug**. El panel **Info** del centro
+> muestra solo info de las cartas (probabilidades/fase al pasar el mouse), nunca jugadas anteriores.
 
 | Problema | Fix | Dónde |
 | :-- | :-- | :-- |
-| Al medir, solo se veía `Midiendo con referencia…`; no se narraba el resultado | El panel **Info** ahora muestra qué cara salió, con qué probabilidad y si fue válida/inválida, para el jugador **y** para la IA | `front/qards/ui/render.js` (`describeResult`) |
-| La narración duraba ~0.7 s: la jugada de la IA la pisaba enseguida y casi no se leía | El panel Info muestra las **últimas 3** líneas (y cada una va también al panel Debug) | `front/qards/ui/render.js` (`recent`, `pushEvent`) |
-| "Nueva partida" no limpiaba el Info: seguía mostrando la jugada anterior | Se reinicia el historial de narración al empezar una partida | `front/qards/ui/render.js` |
+| Al medir, solo se veía `Midiendo con referencia…`; no se narraba el resultado | La narración (qué cara salió, con qué probabilidad y si fue válida/inválida, para el jugador **y** la IA) se emite al panel **Debug** | `front/qards/ui/render.js` (`describeResult`) |
+| La narración se pisaba a los ~0.7 s con la jugada de la IA y casi no se leía | La narración va al panel **Debug** (con historial), no al Info | `front/qards/ui/render.js` (`pushEvent`) |
 | El checkbox de Debug no reflejaba el estado real y arrancaba tildado | El panel arranca **apagado** (no se persiste) y el checkbox se sincroniza en cada render | `front/qards/ui/debug.js`, `ui/render.js` |
 | Un comodín en el descarte se veía como ★ negra, sin el color elegido | El descarte pinta el comodín con el **color vigente** (`activeColor`). *Lógica verificada; falta confirmación visual.* | `front/qards/ui/render.js` |
 | El panel **Debug** tapaba parte de la mano | El panel arranca **colapsado** (solo la barra) y se expande con el botón o ante un error | `front/qards/ui/debug.js` |
@@ -28,7 +26,7 @@ Problemas detectados en las revisiones, ya corregidos:
 | **Sin picker de color para comodines** | El color se elige **automáticamente** (el más frecuente de tu mano). | `services/rules.js` (`chooseWildColor`) |
 | **IA "difícil" no es expectimax** | Prueba puertas + mayor probabilidad; no estima la mano rival. | `services/ai.js` |
 | **`turn.direction` sin uso** | Existe en el estado, pero las reglas 2p no lo usan. | `back/estado.js` |
-| **`state.log` no se muestra** | Reglas escribe un historial de texto, pero la UI **no lo renderiza**; la narración usa otro canal (`lastEvent`). | `services/rules.js`, `ui/render.js` |
+| **`state.log` no se muestra** | Reglas escribe un historial de texto, pero la UI **no lo renderiza**; el resultado de cada jugada se narra en el panel **Debug**. | `services/rules.js`, `ui/render.js` |
 | **Colapso no reproducible** | El armado está sembrado, pero la medición usa `Math.random`. Detalle y propuesta: [`determinism.md`](determinism.md). | `services/quantum.js` |
 
 ## Limitaciones de entorno (documentadas, no bugs)

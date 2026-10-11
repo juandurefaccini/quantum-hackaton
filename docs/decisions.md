@@ -35,7 +35,7 @@ contradice a `idea.md`, gana la de acá. Ver también [`ARCHITECTURE.md`](ARCHIT
 | Decisión | Motivo | Dónde |
 | :-- | :-- | :-- |
 | Puertas X/Z/H/CNOT **no son cartas**: se otorgan por turno y son **preparación libre** | Modelo "cartas = qubits"; las operaciones son gratis y no cierran el turno | `rules.js:PUERTAS` · `estado.js:otorgarPuerta` |
-| Cadencia de puerta: **1 cada 2 turnos propios**, tope 3 en mano | Balance | `rules.js:PUERTAS = { cadaTurnos: 2, maximo: 3 }` |
+| Cadencia de puerta: **1 por turno propio**, tope 3 en mano | Balance | `rules.js:PUERTAS = { cadaTurnos: 1, maximo: 3 }` |
 | Jugada **inválida**: la carta queda colapsada en la mano + robás 1 | Castigo que hace crecer la mano | `rules.js:resolvePlay` |
 | Efectos clásicos 2p: skip/reverse = pierde turno, +2, comodín, +4 | Fidelidad al clásico | `rules.js:resolvePlay` |
 | Comodín: color **automático** (el más frecuente de tu mano) | No hay picker todavía | `rules.js:chooseWildColor` |
@@ -60,9 +60,8 @@ Hallazgos de las revisiones, resueltos.
 
 | Decisión | Motivo | Dónde |
 | :-- | :-- | :-- |
-| **Narrar la medición** en el panel Info (cara, probabilidad, veredicto) para jugador e IA | Antes solo decía "Midiendo…": no se veía el resultado | `ui/render.js` (`describeResult`) |
-| El Info guarda las **últimas 3** narraciones (y van también al panel Debug) | Una sola línea se pisaba a los ~0.7 s con la jugada de la IA | `ui/render.js` (`recent`, `pushEvent`) |
-| Reset del Info al pulsar "Nueva partida" | Evitar mostrar la jugada de la partida anterior | `ui/render.js` |
+| **Narrar la medición** (cara, probabilidad, veredicto) para jugador e IA | Antes solo decía "Midiendo…": no se veía el resultado | `ui/render.js` (`describeResult`) |
+| La narración va al panel **Debug**; el panel **Info** muestra solo info de las cartas | El centro no debe mostrar jugadas anteriores, solo info de cartas (probabilidades/fase al hover) | `ui/render.js` (`pushEvent`, `renderState`) |
 | Pintar el **comodín del descarte** con el color vigente (`activeColor`) | Un comodín no tiene color propio → no se sabía qué matchear | `ui/render.js` |
 | **Panel Debug apagado** por defecto (sin persistir) + checkbox sincronizado | No arrancar tildado; reflejar el estado real del panel | `ui/debug.js`, `ui/render.js` |
 

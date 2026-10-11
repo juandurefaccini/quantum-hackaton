@@ -75,7 +75,7 @@ node front/qards/dev-server.mjs        # sirve el repo + proxya IonQ
 Las **probabilidades siempre son exactas** (Statevector o simulador de referencia). IonQ solo aporta
 la **medición** (el colapso real). Si el motor remoto falla, se cae al simulador de referencia.
 
-**Qollab:** se sube `front/qards.zip` (ver §9). Ahí `backend` existe y el puerto usa Qiskit.
+**Qollab:** se sube el bundle plano `qollab/app/` (ver §9). Ahí `backend` existe y el puerto usa Qiskit.
 
 ---
 
@@ -110,21 +110,23 @@ la **medición** (el colapso real). Si el motor remoto falla, se cae al simulado
 │   │   ├── render.js         app completa (render, input, flujo de turnos)
 │   │   ├── qard.js           carta del diseño de cards/ (escalable, em + aspect-ratio)
 │   │   ├── collapse.js       animación de medición (colapso)
+│   │   ├── superpose.js      animación inversa (colapsada → superpuesta, haz WebGL)
+│   │   ├── gatecard.js       carta de puerta (escalable)
+│   │   ├── circuit-overlay.js  pantalla del circuito de una carta cuántica
 │   │   ├── entangle.js       agrupado visual de cartas entrelazadas en la mano
-│   │   ├── circuit.js        SVG del circuito + tooltip  (huérfano, ver §11)
 │   │   ├── background.js     fondo WebGL 320×180
-│   │   ├── glitch.js         glitch WebGL de las cartas cuánticas (carta como textura + shader)
+│   │   ├── glitch.js         glitch WebGL de las cartas cuánticas (shader de textura)
+│   │   ├── glitch-texture.js prototipo dev: superposición como dos cartas + shader glitch
+│   │   ├── cards-lab.js      prototipo dev: laboratorio de 10 variantes de carta
 │   │   ├── audio.js          SFX con osciladores (sin archivos)
 │   │   └── debug.js          panel de diagnóstico on-screen
 │   ├── quantum/qiskit-stub.js  stub de qiskit/qiskit.quantum_info (import map en dev)
 │   ├── tests/              npm test (hook de resolución de qiskit; fuera del zip)
 │   ├── dev-server.mjs      server local + proxy IonQ (fuera del zip)
-│   ├── build.mjs           arma front/qards.zip (app plana + back/)
 ├── cards/                  prototipos de la carta (index · card_final) · qard.js reexporta
+├── qollab/                 envío a Qollab: build.mjs (bundle plano) + Project Card + guías
 └── utils/
-    ├── zip.js              empaquetador del repo (zip sin dependencias)
-    ├── render.js           copia VIEJA y rota (ver §11)
-    └── rules.js            copia VIEJA y rota (ver §11)
+    └── zip.js              empaquetador del repo (zip sin dependencias)
 ```
 
 ---
@@ -304,7 +306,7 @@ Todo **muta** `state` (como el motor del back). Constantes ajustables al inicio 
 
 ```js
 export const ESPIAR = { inicial: 1, cadaTurnos: 2, maximo: 2 };  // cargas del "ojo"
-export const PUERTAS = { cadaTurnos: 2, maximo: 3 };             // cadencia y tope de puertas
+export const PUERTAS = { cadaTurnos: 1, maximo: 3 };             // una puerta por turno propio, tope 3
 export const CNOT_SOBRE_RIVAL = true;                            // el target del CNOT puede ser del rival
 ```
 
@@ -398,9 +400,9 @@ orquesta el flujo de turnos (incluida la IA con pausas para que se siga la parti
   de un mismo grupo contiguas y enmarcadas), `debug.js` (panel oculto que se destapa ante un error real).
 - **Re-render serializado:** `render()` encola una sola ejecución (evita duplicar cartas si dos
   llamadas se solapan).
-- **Narración (panel Info):** al resolverse una jugada/medición, `render.js` guarda una línea con la
-  cara que salió, su probabilidad y el veredicto (jugador **y** IA) en un historial `recent` (últimas
-  **3** líneas); cada línea va también al panel Debug. El historial se reinicia con "Nueva partida".
+- **Panel Info (centro de la mesa):** muestra **solo info de las cartas** — al pasar el mouse por una
+  carta cuántica, sus probabilidades y fase (`renderState`). **No** muestra jugadas anteriores: la
+  narración de cada jugada/medición (`describeResult`) va únicamente al panel **Debug**.
 - **Comodín en el descarte:** se pinta con el `activeColor` vigente (un comodín no tiene color propio),
   para que se vea qué hay que matchear.
 - **Debug:** el panel arranca **apagado** (no persiste) y **colapsado** (solo la barra), para no tapar
@@ -433,9 +435,11 @@ flowchart TD
 - **Por qué no hay imports dinámicos:** Qollab empaqueta solo los archivos alcanzables por imports
   **estáticos**; un `import()` dinámico resuelve contra la base `_nuxt/` de Qollab y falla. Por eso
   `services/quantum.js` importa los adaptadores de forma estática y elige en runtime.
-- **`front/qards/build.mjs`** → `front/qards.zip` para Qollab: copia la app **plana** en la raíz
-  (`index.html`, `main.css`, `main.js`, `services/`, `ui/`, `quantum/`, `back/`) y reescribe en
-  `services/` las rutas `../../../back/` → `../back/`.
+- **`qollab/build.mjs`** → bundle plano para Qollab en `qollab/app/` (y `qollab/qards-qollab.zip`):
+  copia la app **plana** en la raíz (`index.html`, `main.css`, `main.js`, `services/`, `ui/`,
+  `back/`) y reescribe en `services/` las rutas `../../../back/` → `../back/`. No incluye
+  `quantum/qiskit-stub.js` (en Qollab `qiskit` es el paquete real). El bundle es generado: no se
+  versiona (`qollab/app/` está en `.gitignore`).
 - **`utils/zip.js`** → zip del repo entero (sin dependencias: contenedor ZIP escrito con
   `node:zlib` + CRC32). Ignora `node_modules`, `.git`, `.atl`, `dist`, `build`, `.venv`, etc.
 
@@ -471,7 +475,8 @@ Cobertura actual (`tests/services.test.js`, 7 tests, todos verdes):
 - **IA difícil:** no es expectimax completo ni estima la mano rival (ver [`roadmap.md`](roadmap.md)).
 - **`turn.direction`** existe en el estado pero las reglas 2p no lo usan.
 - **`state.log`** se escribe en `rules.js` (historial de texto) pero la UI actual
-  (`front/qards/ui/render.js`) **no lo muestra**: la narración usa `lastEvent`, no el log.
+  (`front/qards/ui/render.js`) **no lo muestra**: el resultado de cada jugada se narra en el panel
+  **Debug**, no en el log.
 - **Motores remotos (`ionq`, `qiskit`):** **no verificados** en este repo (sin key ni Qollab). Ver
   [`engines.md`](engines.md).
 - **IonQ (simulador):** ~3.6 s por medición; hay timeouts y fallback a la referencia.

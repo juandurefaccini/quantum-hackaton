@@ -33,7 +33,7 @@ Vos vs. la IA, 1v1. **Gana quien se queda sin cartas en la mano** (las puertas n
   símbolo), o si es comodín.
 - **Medir** colapsa la carta a una cara: si coincide, va al descarte y aplica su efecto; si no, la
   carta queda en tu mano (ya colapsada) y **robás 1**.
-- **Las puertas se otorgan, no se roban:** recibís **1 puerta al azar cada 2 turnos tuyos**, con un
+- **Las puertas se otorgan, no se roban:** recibís **1 puerta al azar cada turno tuyo**, con un
   tope de **3**. `CNOT` entrelaza dos cartas: al medir una, la otra queda fijada.
 - **Efectos (2 jugadores):** skip/reverse → el rival pierde el turno; **+2** → el rival roba 2 y
   pierde el turno; **comodín** → elegís color; **+4** → elegís color y el rival roba 4 y pierde el turno.
@@ -101,7 +101,7 @@ control 50 / 50 pasa a medir, apenas medís el control, ~90 % en el bit que sac�
 una moneda justa, pero la carta ligada queda fijada). Sirve para elegir *cuándo* se define una carta.
 También puede entrelazar una carta del rival (el control sigue siendo tuyo).
 
-Costo: las puertas escasean — recibís **1 cada 2 turnos tuyos** y guardás hasta **3** — y **una carta
+Costo: recibís **1 puerta cada turno tuyo** pero guardás hasta **3** — y **una carta
 ya medida es clásica: no acepta más puertas.** Cada jugada de arriba es un trueque real, no un reroll
 gratis.
 

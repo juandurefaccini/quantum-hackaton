@@ -33,7 +33,7 @@ You vs. AI, heads-up. **First to empty their hand wins** (gates/cards of other k
   symbol), or if it's a wild.
 - **Measuring** collapses the card to one face: if it matches, the card goes to the discard and its
   effect fires; if not, the card stays in your hand (now collapsed) and **you draw 1**.
-- **Gates are granted, not drawn:** you get **1 random gate every 2 of your turns**, and can hold up
+- **Gates are granted, not drawn:** you get **1 random gate every turn**, and can hold up
   to **3**. `CNOT` entangles two cards, so measuring one fixes the other.
 - **Effects (2 players):** skip/reverse → the opponent loses a turn; **+2** → opponent draws 2 and
   skips; **wild** → choose a color; **+4** → choose a color and opponent draws 4 and skips.
@@ -101,7 +101,7 @@ control becomes, once you measure the control, ~90 % in whichever bit the contro
 is a fair coin, but the linked card is then pinned). Use it to choose *when* a card's uncertainty
 resolves. It can also entangle one of the opponent's cards (the control stays yours).
 
-Cost: gates are scarce — you get **1 every 2 of your turns** and hold at most **3** — and **a card that
+Cost: you get **1 gate every turn** but hold at most **3** — and **a card that
 has been measured is classical: it takes no more gates.** Every move above is a real trade-off, not a
 free reroll.
 
