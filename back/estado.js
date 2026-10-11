@@ -1,4 +1,4 @@
-// ESTADO DEL UNO CUÁNTICO
+// ESTADO DEL JUEGO DE CARTAS CUÁNTICO
 // Este archivo solo arma el estado inicial de una partida. No tiene reglas ni acciones:
 // eso viene después. El estado es un objeto plano (solo números, textos, listas y objetos),
 // así se puede guardar, copiar y reproducir sin sorpresas.
@@ -116,7 +116,7 @@ export function aplicarPuerta1(cards, groups, idCarta, gate) {
 // Es el lugar donde se ajusta el balance.
 // ---------------------------------------------------------------------------
 export const CATALOGO = {
-  // Mazo base de 156 cartas: el UNO clásico con 3 copias (en vez de 2) de cada número y de cada
+  // Mazo base de 156 cartas: el juego de descarte clásico con 3 copias (en vez de 2) de cada número y de cada
   // acción, un solo cero por color y los 8 comodines de siempre. De acá salen las cartas con las
   // que se fabrican las cuánticas, así que el mazo final queda con 60 normales + 48 cuánticas = 108.
   // Cada entrada es [símbolo, copias por color].
@@ -156,7 +156,7 @@ export function sortearPuerta(seed, puertas = CATALOGO.puertas) {
 }
 
 // Le da una puerta al azar al jugador del turno actual. Modifica `state` directamente. Cuándo darla
-// (cadencia y tope) lo decide quien la llama: ver PUERTAS en front/quards/services/rules.js.
+// (cadencia y tope) lo decide quien la llama: ver PUERTAS en front/qards/services/rules.js.
 export function otorgarPuerta(state) {
   const jugador = state.players[state.turn.current];
   const s = sortearPuerta(state.rng.seed);

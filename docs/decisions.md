@@ -1,38 +1,85 @@
-# Quards — Decisiones
+# Qards — Registro de decisiones
 
-Registro de las decisiones de diseño resueltas (fuente: `idea.md` + definiciones del equipo).
-Cuando una decisión contradice a `idea.md`, la de acá gana y `idea.md` se anota.
+Decisiones de diseño, con el **motivo** y **dónde vive cada una en el código**. Cuando una decisión
+contradice a `idea.md`, gana la de acá. Ver también [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
-> **Integración con el back (2026-10):** el juego final pasó a usar el **motor del back**
-> (`back/estado.js` + `back/quantum/qiskit.js`) a través de una capa de **servicios**
-> (`front/quards/services/`). Eso cambia el modelo respecto de lo de abajo: las puertas (X/Z/H/**CNOT**)
-> **no son cartas** (van en `player.gates`, otorgadas por turno), el mazo es de **108 cartas** (con
-> comodines), el entrelazamiento es un **CNOT**, y la **victoria es mano vacía**. Ver
-> `front/quards/README.md` y `DESIGN.md`. Las filas siguientes quedan como registro histórico.
+> Las primeras versiones modelaban las puertas y el entrelazamiento como **cartas del mazo**; ese
+> modelo quedó descartado. Hoy el juego usa el **motor del back** (`back/estado.js`) y las puertas
+> son un recurso aparte. Este documento refleja el estado actual.
 
-| Tema | Decisión | Consecuencia |
+## Motor y modelo
+
+| Decisión | Motivo | Dónde |
 | :-- | :-- | :-- |
-| Ubicación | App nueva en `front/quards/`, reusando `quantum/` y `collapse/` del probe `front/quards-quantum-lab/` | Los zips de Qollab son autocontenidos: no se comparte código entre apps |
-| Base Qollab | `index.html` fragmento + `main.css` + `main.js` (espera `#root`, monta, `await new Promise(() => {})`) | Imports **estáticos** obligatorios (Qollab no empaqueta los dinámicos; falla contra `_nuxt/`) |
-| Cartas de acción | Compuertas X/H/Z y entrelazamiento 2/3 **no están en el mazo**: se **otorgan** por turno | Se aplican como **preparación libre** (sin costo de turno, apilables) |
-| Modelo de turno | El turno tiene **fase de preparación libre** (compuertas/entrelazamiento) y **fase de jugar** | La carta se **mide solo al jugarla**; aplicar compuertas registra el circuito sin medir |
-| Otorgamiento | Al inicio del turno del activo: **1 compuerta** aleatoria (X/H/Z); **cada 2 turnos globales** (2, 4, 6…), además **1 entrelazamiento** aleatorio (2/3) | Van a la mano y se usan ese mismo turno (el turno 1 también otorga) |
-| Estado inicial | Cada carta qubit arranca **definida** (|0⟩ o |1⟩) o en **50/50**, al azar por carta | Se reparten **7 qubit** por jugador |
-| Jugada inválida | La carta jugada vuelve a tu mano **colapsada** + robás una carta **externa** del mazo, colapsada al vuelo | Termina el turno; la mano crece como castigo |
-| Carta externa | Sale **del mazo**, colapsada al vuelo | No hay pila externa aparte |
-| Colapso | Pasa por el **adaptador cuántico**: `backend` → `qiskit-source.js`; si no → `fake-source.js` (statevector local) | El reducer **no mide**: recibe el resultado y transiciona |
-| Mazo | Caras 4 colores × 0–9. **38 qubit** + **12 acciones UNO** = **50** (sin compuertas/entrelazamiento) · **mano inicial 7 qubit** | Prototipo "UNO completo" |
-| Acciones UNO | **Clásico 2p**: skip = el rival pierde su turno; reverse = en 2 jugadores equivale a skip; +2 = el rival roba 2 (colapsadas) y pierde el turno | Cartas de **color** (una sola cara), match por color o símbolo |
-| Carta colapsada | Es una carta UNO normal: jugable si matchea; **no** recibe compuertas ni se entrelaza | Confirma puntos 1–2 de `idea.md` |
-| Acciones consumen turno | Solo **jugar/robar** y las **acciones UNO** cierran el turno; compuertas y entrelazamiento son **preparación libre** | Reemplaza el punto 3 de `idea.md` |
-| Alcance | **1v1 humano vs IA, sin servidor**. El motor queda desacoplado para moverlo a servidor | Multijugador = fase futura |
-| IA | 3 niveles: fácil (jugada aleatoria), media (preparación + máx P(válida)), difícil (preparación + preferencia de acciones) | Info oculta: solo conoce sus propias distribuciones |
-| Estética | Rica (WebGL 320×180, cartas CSS 3D, CRT overlay, Web Audio) + panel `debug` | Reusada del probe |
-| Colapso válido | Al colapsar, si la cara sale y **coincide** con el descarte (color o número) → válida, va al descarte | — |
-| Mazo agotado | Se re-mezcla el descarte (menos la carta de arriba) | — |
-| Victoria | Gana quien se queda **sin cartas qubit** (las compuertas/entrelazamientos/acciones que queden no cuentan) | — |
+| El **motor del back** (`back/estado.js`) es la fuente de verdad | Estado plano y serializable, sin reglas ni azar de colapso: clonable y reproducible | `back/estado.js` · `services/engine.js` |
+| El motor **no trae reglas**: las reglas viven en el front | Separar dominio (qué es) de política (cómo se juega) | `services/rules.js` |
+| Toda carta es un qubit; la clásica es un qubit "sin grupo" con cara fija | Un solo modelo para todo; el colapso y la jugabilidad son uniformes | `back/estado.js:46-52` |
+| El circuito es del **grupo**, no de la carta | El estado de dos qubits entrelazados es conjunto | `back/estado.js:66-68` |
+| Azar **con semilla** para fabricar/barajar/sortear; el colapso no usa esa semilla | Partidas reproducibles para tests; el colapso lo decide la cuántica | `back/estado.js:22-38` |
+
+## Cuántica
+
+| Decisión | Motivo | Dónde |
+| :-- | :-- | :-- |
+| El colapso pasa por un **puerto con adaptadores** (`referencia`/`ionq`/`qiskit`) | La UI no conoce el backend; el motor se elige por entorno | `services/quantum.js` |
+| Las **probabilidades son exactas** (Statevector/referencia); IonQ solo mide | El simulador ideal de IonQ devuelve probabilidades, no muestrea | `services/quantum.js` · `services/ionq.js` |
+| **Medición remota con fallback** a la referencia | El juego nunca queda esperando una medición que no llega | `services/quantum.js:47-55` |
+| La **medición es parcial** y condiciona el resto del grupo | Al jugar una carta solo se revela su qubit; el resto sigue en superposición | `services/rules.js:118` · `util.js:condicionar` |
+| Superposiciones preparadas con **`ry` en el plano x-z** (`sesgoMaximo 0.8`) | Las puertas H/X/Z/Ry/CX tienen matrices reales → amplitudes reales, un número por estado | `back/estado.js:196-228` · `referencia.js` |
+| **Entrelazar = CNOT que fusiona grupos** | Un solo mecanismo para armar pares y para jugar un CNOT | `back/estado.js:aplicarCnot` |
+| El **target de un CNOT puede ser del rival** (control propio) | Da una jugada ofensiva; el mensaje de error es neutro para no filtrar info | `rules.js:CNOT_SOBRE_RIVAL` |
+| La API key de IonQ queda **server-side** (proxy del dev-server) | El browser no puede llamar a `api.ionq.co` (CORS) ni conviene exponer la key | `dev-server.mjs` · `services/ionq.js` |
+
+## Reglas y turnos
+
+| Decisión | Motivo | Dónde |
+| :-- | :-- | :-- |
+| Puertas X/Z/H/CNOT **no son cartas**: se otorgan por turno y son **preparación libre** | Modelo "cartas = qubits"; las operaciones son gratis y no cierran el turno | `rules.js:PUERTAS` · `estado.js:otorgarPuerta` |
+| Cadencia de puerta: **1 cada 2 turnos propios**, tope 3 en mano | Balance | `rules.js:PUERTAS = { cadaTurnos: 2, maximo: 3 }` |
+| Jugada **inválida**: la carta queda colapsada en la mano + robás 1 | Castigo que hace crecer la mano | `rules.js:resolvePlay` |
+| Efectos clásicos 2p: skip/reverse = pierde turno, +2, comodín, +4 | Fidelidad al clásico | `rules.js:resolvePlay` |
+| Comodín: color **automático** (el más frecuente de tu mano) | No hay picker todavía | `rules.js:chooseWildColor` |
+| **Victoria = mano vacía** | Las puertas están aparte, no cuentan | `rules.js:resolvePlay` |
+| **Espía (ojo)**: cargas {inicial 1, cada 2 turnos, tope 2}; revela un estado al azar | Mecánica de información oculta (no cuántica) | `rules.js:ESPIAR` · `spyCard` |
+| Mazo agotado → re-mezclar el descarte (menos la de arriba) | Continuidad de la partida | `rules.js:reshuffle` |
+
+## Arquitectura y packaging
+
+| Decisión | Motivo | Dónde |
+| :-- | :-- | :-- |
+| **Imports estáticos** + import map (dev) para `qiskit` | Qollab no empaqueta lo referido solo por `import()` dinámico | `index.html` · `services/quantum.js` |
+| El repo **importa `../../../back/`**; el build del zip lo aplana a `../back/` | No vendorizar el motor en el front, pero Qollab necesita estructura plana | `services/*.js` · `build.mjs` |
+| La **carta** vive en `front/qards/ui/qard.js` (fuente única, escalable) | El zip se empaqueta plano; `cards/qard.js` la re-exporta | `ui/qard.js` · `cards/qard.js` |
+| **Entry raíz** ejecutable (`index.html` + `main.js`) | El repo debe poder levantarse desde la raíz | `index.html` · `main.js` |
+| `main.js` termina en `await new Promise(() => {})` | Mantener viva la sesión: IonQ solo es alcanzable mientras corre | `front/qards/main.js` |
+| Panel de **debug oculto por defecto**, se destapa ante un error real | Nunca una pantalla negra silenciosa | `ui/debug.js` |
+
+## UX (2026-10)
+
+Hallazgos de las revisiones, resueltos.
+
+| Decisión | Motivo | Dónde |
+| :-- | :-- | :-- |
+| **Narrar la medición** en el panel Info (cara, probabilidad, veredicto) para jugador e IA | Antes solo decía "Midiendo…": no se veía el resultado | `ui/render.js` (`describeResult`) |
+| El Info guarda las **últimas 3** narraciones (y van también al panel Debug) | Una sola línea se pisaba a los ~0.7 s con la jugada de la IA | `ui/render.js` (`recent`, `pushEvent`) |
+| Reset del Info al pulsar "Nueva partida" | Evitar mostrar la jugada de la partida anterior | `ui/render.js` |
+| Pintar el **comodín del descarte** con el color vigente (`activeColor`) | Un comodín no tiene color propio → no se sabía qué matchear | `ui/render.js` |
+| **Panel Debug apagado** por defecto (sin persistir) + checkbox sincronizado | No arrancar tildado; reflejar el estado real del panel | `ui/debug.js`, `ui/render.js` |
+
+## Alternativas descartadas
+
+- **Imports dinámicos** (como Qubitle): descartados — Qollab no empaqueta los archivos referidos
+  solo por `import()`. Se usan imports **estáticos** + import map (dev) para `qiskit`.
+- **Vendorizar `back/` dentro del front**: descartado en el repo (se importa `../../../back/`); el
+  **build del zip** sí lo empaqueta y reescribe la ruta a `../back/`.
+- **Medir todo con IonQ (probabilidades incluidas)**: descartado — el simulador ideal devuelve
+  probabilidades (no muestrea). Las probabilidades se calculan exactas (Statevector/referencia) y
+  IonQ solo aporta la medición; en un QPU el muestreo es real (`histogram`).
 
 ## Pendientes / no decidido
-- ¿Se puede jugar una acción UNO sobre un descarte de cualquier color o solo matcheando? (default: matchea color o símbolo).
-- Regla de "cantar última carta" (UNO!): fuera de alcance por ahora.
-- ¿La IA debería usar entrelazamiento además de compuertas? (hoy: solo si mejora la P(válida)).
+
+- **Picker de color** para comodines (hoy es automático).
+- **IA difícil**: expectimax real + estimación de la mano rival.
+- **Verificar Qiskit/IonQ dentro de Qollab** en un run real.
+- **Multijugador**: requiere servidor (fase futura).
+- `turn.direction` está en el estado pero las reglas 2p no lo usan.

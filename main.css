@@ -53,7 +53,7 @@ select { font: inherit; color: var(--ink); background: #221f1b; border: 2px soli
 section { position: relative; }
 .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; }
 .sec-head { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 2px; }
-.count-pill { font-size: 12px; font-weight: 700; color: var(--teal); background: rgba(34,179,160,0.12); border: 2px solid var(--edge); padding: 1px 8px; box-shadow: 2px 2px 0 var(--edge); }
+.count-pill { font-size: 12px; font-weight: 700; color: #7fe3d5; background: rgba(34,179,160,0.12); border: 2px solid var(--edge); padding: 1px 8px; box-shadow: 2px 2px 0 var(--edge); }
 
 .hand { display: flex; gap: 8px; flex-wrap: nowrap; min-height: 0; align-items: flex-end; justify-content: center; }
 .hand > * { flex: none; position: relative; }
@@ -114,7 +114,7 @@ section { position: relative; }
   pointer-events: none;
 }
 .pile { display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.pile .label { font-size: 11px; }
+.pile .label { font-size: 12px; }
 
 /* discard: drop zone + pile illusion */
 .discard {
@@ -167,8 +167,8 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   border: 2px solid var(--edge);
   border-left: 4px solid var(--gold);
 }
-.hint-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
-.hint-text { margin: 0; font-size: 14px; line-height: 1.35; color: var(--gold); }
+.hint-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
+.hint-text { margin: 0; font-size: 13px; line-height: 1.3; color: var(--gold); white-space: pre-line; }
 /* resumen de estado de la carta bajo el mouse: reemplaza el texto de ayuda mientras dura el hover */
 .hint-box.show-state .hint-text { display: none; }
 .hint-state { display: none; flex-direction: column; gap: 6px; font-size: 14px; }
@@ -218,7 +218,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 .ent-group::before {
   content: "⚛ entrelazadas";
   position: absolute; top: -11px; left: 50%; transform: translateX(-50%);
-  font-size: 10px; font-weight: 700; letter-spacing: 0.04em; color: var(--gold);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.04em; color: var(--gold);
   background: #14120f; border: 2px solid var(--edge); border-radius: 6px;
   padding: 1px 6px; white-space: nowrap; box-shadow: 2px 2px 0 var(--edge);
 }
@@ -234,6 +234,9 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
 
 /* --- puertas cuánticas + cartas nuevas (integración con el back) --- */
 .muted { color: var(--muted); font-size: 12px; }
+/* Atribución del hackathon: fija al pie, no afecta el layout flexible del juego */
+.credits { position: fixed; left: 50%; bottom: 3px; transform: translateX(-50%); z-index: 20; margin: 0;
+  font-size: 11px; letter-spacing: 0.04em; color: var(--muted); opacity: 0.8; pointer-events: none; }
 .gates-row { display: flex; align-items: center; gap: 10px; justify-content: center; }
 .gates { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip {
