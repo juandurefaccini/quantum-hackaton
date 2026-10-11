@@ -158,7 +158,7 @@ export function simular(group) {
       for (let i = 0; i < N; i++) {
         if (((i >> c) & 1) && !((i >> t) & 1)) { const j = i | (1 << t); const tmp = a[i]; a[i] = a[j]; a[j] = tmp; }
       }
-    } else console.warn(`circuit-overlay: puerta no simulada "${gate}"`);
+    } else console.warn(`circuit-overlay: unsimulated gate "${gate}"`);
   }
 
   // Qubits ya medidos: se descartan los estados incompatibles y se renormaliza.
@@ -182,7 +182,26 @@ export function simular(group) {
     p0.push(q0);
     bloch.push({ x: 2 * rho01, z: 2 * q0 - 1 }); // y = 0: todas las amplitudes son reales
   }
-  return { amp: Array.from(a), p0, bloch };
+  // El estado global es puro: un qubit está entrelazado con el resto si y solo si su vector de Bloch es más corto que 1.
+  const entrelazado = bloch.map(v => Math.hypot(v.x, v.z) < 1 - 1e-6);
+  return { amp: Array.from(a), p0, bloch, entrelazado };
+}
+
+// Texto según el estado real de la carta: entrelazada, en superposición o con valor definido.
+export function describir(sim, cardQubit) {
+  if (cardQubit === null || cardQubit === undefined) {
+    return sim.entrelazado.some(Boolean)
+      ? 'There are entangled qubits in this circuit.'
+      : 'No qubit is entangled: each one is measured separately.';
+  }
+  if (sim.entrelazado[cardQubit]) {
+    return 'This card is entangled: its outcome is correlated with other cards in the group, so measuring one changes the probabilities of the others.';
+  }
+  const p0 = sim.p0[cardQubit];
+  if (p0 > 1e-6 && p0 < 1 - 1e-6) {
+    return 'This card is in superposition but not entangled: its outcome is independent from the rest of the group.';
+  }
+  return 'This card has a defined value (|0⟩ or |1⟩): measuring it always gives the same result.';
 }
 
 // Distribución de las amplitudes en una grilla: las primeras floor(n/2) qubits van en filas y el resto en columnas.
@@ -272,7 +291,7 @@ function dibujarCircuito(group, n) {
   for (let q = 0; q < n; q++) {
     const bit = group.bits?.[q];
     const m = h('div', 'co-gate meter', bit === 0 || bit === 1 ? String(bit) : 'M');
-    m.title = 'Medición';
+    m.title = 'Measurement';
     cells[q].append(m);
   }
   cols.append(col);
@@ -329,7 +348,7 @@ function ensure() {
   root = h('div', 'circuit-overlay');
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-modal', 'true');
-  root.setAttribute('aria-label', 'Circuito de la carta');
+  root.setAttribute('aria-label', 'Card circuit');
   root.addEventListener('click', e => { if (e.target === root) hideCircuitOverlay(); });
   document.body.append(root);
 }
@@ -341,21 +360,20 @@ export function showCircuitOverlay(group, opts = {}) {
   const { cardQubit = null, probs = null, canPlay = false, onPlay } = opts;
   const n = group.qubits;
   const sim = simular(group);
-  const entangled = (group.cards?.length ?? 1) > 1;
 
   if (probs) {
     sim.p0.forEach((p, q) => {
       const e = probs[q]?.[0];
       if (typeof e === 'number' && Math.abs(e - p) > 0.02) {
-        console.warn(`circuit-overlay: q${q} P(0) motor=${e.toFixed(3)} vs simulación=${p.toFixed(3)}`);
+        console.warn(`circuit-overlay: q${q} P(0) engine=${e.toFixed(3)} vs simulation=${p.toFixed(3)}`);
       }
     });
   }
 
   const head = h('div', 'co-head');
   head.append(
-    h('h2', '', 'Circuito de la carta'),
-    h('p', '', entangled ? 'Esta carta está entrelazada: sus qubits se miden juntos.' : 'Una fila por qubit; las puertas se leen de izquierda a derecha.'),
+    h('h2', '', 'Card circuit'),
+    h('p', '', describir(sim, cardQubit)),
   );
 
   // --- etiquetas (izquierda) ---
@@ -363,7 +381,7 @@ export function showCircuitOverlay(group, opts = {}) {
   for (let q = 0; q < n; q++) {
     const lab = h('div', `co-row co-q${q === cardQubit ? ' mine' : ''}`, '|0⟩');
     lab.append(h('small', '', `q${q}`));
-    if (q === cardQubit) lab.title = 'Esta carta';
+    if (q === cardQubit) lab.title = 'This card';
     labels.append(lab);
   }
 
@@ -376,7 +394,7 @@ export function showCircuitOverlay(group, opts = {}) {
     const fill = h('i');
     fill.style.height = `${pct}%`;
     box.append(fill, h('span', '', `${pct.toFixed(1)}%`));
-    box.title = `q${q}: probabilidad de medir |0⟩`;
+    box.title = `q${q}: probability of measuring |0⟩`;
     const rc = h('div', 'co-row'); rc.append(box); colChance.append(rc);
 
     const cv = h('canvas', 'co-bloch');
@@ -400,7 +418,7 @@ export function showCircuitOverlay(group, opts = {}) {
       fill.style.height = `${(p * 100).toFixed(1)}%`;
       const txt = Math.abs(a) < 5e-4 ? '0' : `${a < 0 ? '−' : '+'}${Math.abs(a).toFixed(3)}`;
       box.append(fill, dialAmplitud(a), h('span', 'p', `${Math.round(p * 1000) / 10}%`), h('span', 'k', g.colLabel(c)));
-      box.title = `|${i.toString(2).padStart(n, '0')}⟩ (q${n - 1}…q0) · amplitud ${txt} · probabilidad ${(p * 100).toFixed(1)}%`;
+      box.title = `|${i.toString(2).padStart(n, '0')}⟩ (q${n - 1}…q0) · amplitude ${txt} · probability ${(p * 100).toFixed(1)}%`;
       grid.append(box);
     }
   }
@@ -414,8 +432,8 @@ export function showCircuitOverlay(group, opts = {}) {
 
   const fixed = h('div', 'co-fixed');
   fixed.append(locals, amps,
-    h('div', 'co-cap', 'Estado local por qubit\n(Chance de |0⟩ / Bloch)'),
-    h('div', 'co-cap amps', 'Amplitudes finales'));
+    h('div', 'co-cap', 'Local state per qubit\n(|0⟩ chance / Bloch)'),
+    h('div', 'co-cap amps', 'Final amplitudes'));
   fixed.querySelector('.co-cap').style.whiteSpace = 'pre-line';
 
   const stage = h('div', 'co-stage');
@@ -423,14 +441,14 @@ export function showCircuitOverlay(group, opts = {}) {
   const body = h('div', 'co-body');
   body.append(stage);
 
-  const back = h('button', 'co-btn co-back', 'Volver');
+  const back = h('button', 'co-btn co-back', 'Back');
   back.type = 'button';
   back.addEventListener('click', hideCircuitOverlay);
 
-  const play = h('button', 'co-btn co-play', 'Jugar');
+  const play = h('button', 'co-btn co-play', 'Play');
   play.type = 'button';
   play.disabled = !canPlay;
-  if (!canPlay) play.title = 'Esta carta no se puede jugar ahora';
+  if (!canPlay) play.title = 'This card cannot be played now';
   play.addEventListener('click', () => { hideCircuitOverlay(); onPlay?.(); });
 
   const bar = h('div', 'co-bar');

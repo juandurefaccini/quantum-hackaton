@@ -19,7 +19,7 @@ export function showBoot() {
   overlay.className = 'boot';
   overlay.setAttribute('role', 'status');
   overlay.setAttribute('aria-live', 'polite');
-  overlay.setAttribute('aria-label', 'Cargando Qards');
+  overlay.setAttribute('aria-label', 'Loading Qards');
 
   const logo = document.createElement('div');
   logo.className = 'boot-logo';
@@ -28,7 +28,7 @@ export function showBoot() {
   title.textContent = 'Qards';
   const sub = document.createElement('p');
   sub.className = 'boot-sub';
-  sub.textContent = 'juego de cartas cuántico';
+  sub.textContent = 'quantum card game';
   logo.append(title, sub);
 
   const kets = document.createElement('div');

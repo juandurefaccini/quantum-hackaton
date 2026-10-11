@@ -12,7 +12,7 @@ export function toIonQCircuit(group) {
     if (gate === 'z') return { gate: 'z', target: a[0] };
     if (gate === 'ry') return { gate: 'ry', target: a[1], rotation: a[0] };
     if (gate === 'cx') return { gate: 'cnot', control: a[0], target: a[1] };
-    throw new Error(`Puerta no soportada por IonQ: ${gate}`);
+    throw new Error(`Gate not supported by IonQ: ${gate}`);
   });
   return { format: 'ionq.circuit.v0', gateset: 'qis', qubits: group.qubits, circuit };
 }
@@ -46,12 +46,12 @@ function bitsFromResults(results, qubits, fixed = [], random = Math.random) {
       if (idx < (1 << qubits)) entries.push([idx, v]);
     }
   }
-  if (!entries.length) throw new Error('IonQ: resultado sin distribución interpretable');
+  if (!entries.length) throw new Error('IonQ: result without an interpretable distribution');
 
   // Qubits ya medidos antes: solo valen las muestras que coinciden con ellos (condicionamiento).
   const compatible = i => fixed.every((b, q) => b == null || ((i >> q) & 1) === b);
   const usables = entries.filter(([i]) => compatible(i));
-  if (!usables.length) throw new Error('IonQ: ninguna muestra es compatible con los qubits ya medidos');
+  if (!usables.length) throw new Error('IonQ: no sample is compatible with the already measured qubits');
 
   const total = usables.reduce((s, [, v]) => s + v, 0) || 1;
   let r = random() * total, acc = 0, idx = usables[usables.length - 1][0];
@@ -69,13 +69,13 @@ export async function medirGrupo(group, { target = 'simulator', shots, pollMs = 
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ target, shots: nShots, input: toIonQCircuit(group) }),
   })).json();
-  if (!created.id) throw new Error(`IonQ: no se creó el job (${created.error || JSON.stringify(created)})`);
+  if (!created.id) throw new Error(`IonQ: job was not created (${created.error || JSON.stringify(created)})`);
 
   const t0 = Date.now();
   let status = created.status;
   while (status !== 'completed') {
     if (status === 'failed' || status === 'canceled') throw new Error(`IonQ: job ${status}`);
-    if (Date.now() - t0 > timeoutMs) throw new Error('IonQ: timeout esperando el job');
+    if (Date.now() - t0 > timeoutMs) throw new Error('IonQ: timeout waiting for the job');
     await new Promise(r => setTimeout(r, pollMs));
     status = (await (await fetch(`${base()}/v0.3/jobs/${created.id}`)).json()).status;
   }

@@ -107,7 +107,7 @@ export function createGateCard(type, { active = false, disabled = false } = {}) 
   el.className = 'gate-card';
   el.setAttribute('role', 'button');
   el.setAttribute('tabindex', '0');
-  el.setAttribute('aria-label', `Puerta ${name}`);
+  el.setAttribute('aria-label', `Gate ${name}`);
   el.dataset.gate = String(type);
   if (active) el.classList.add('active');
   if (disabled) { el.classList.add('is-disabled'); el.setAttribute('aria-disabled', 'true'); }

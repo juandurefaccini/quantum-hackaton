@@ -155,7 +155,7 @@ export function ensureQardStyles(doc = document) {
 // phase = '+' | '−' (signo de la fase) o null si no está definida (p. ej. carta entrelazada).
 function quantumInner({ color0, sym0, color1, sym1, prob0 = 50, phase = null }) {
   const prob1 = 100 - prob0;
-  const fase = phase ? `FASE: ${phase} |${phase}⟩` : 'FASE: —';
+  const fase = phase ? `PHASE: ${phase} |${phase}⟩` : 'PHASE: —';
   return `
     <div class="header">
       <span class="ket-badge">|0⟩</span>
