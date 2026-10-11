@@ -5,6 +5,10 @@
 // El estado del juego guarda el circuito como dato plano (`ops`); este archivo lo traduce a Qiskit.
 import { QuantumCircuit } from 'qiskit';
 import { Statevector } from 'qiskit.quantum_info';
+import { condicionar, marginal, elegirIndice } from './util.js'; // helpers puros (sin simulación)
+
+// Shots que se piden al medir un grupo con qubits ya medidos: se queda con las muestras compatibles.
+const SHOTS_CONDICIONADOS = 512;
 
 // Traduce { qubits, ops } a un QuantumCircuit de Qiskit. Con `medir` agrega la medición de todos
 // los qubits (para backend.run); sin `medir` queda sin medición (para calcular probabilidades).
@@ -25,44 +29,64 @@ export function construirCircuito({ qubits, ops }, { medir = false } = {}) {
   return qc;
 }
 
-// [P(0), P(1)] de un qubit del grupo, exacto y sin medir (no colapsa nada, no usa el backend).
-// Si el qubit está entrelazado, es la probabilidad de ese qubit solo.
+// Distribución conjunta del grupo (2^n estados), exacta y sin medir, ya CONDICIONADA por los qubits
+// que se midieron antes (group.bits). `extra` agrega ops solo para este cálculo. No usa el backend.
+function distribucionGrupo(group, extra = []) {
+  const sv = Statevector(construirCircuito({ qubits: group.qubits, ops: [...group.ops, ...extra] }));
+  return condicionar(Array.from(sv.probabilities().toJs()), group.bits || []);
+}
+
+// [P(0), P(1)] de un qubit del grupo. Si está entrelazado, es la probabilidad de ese qubit solo,
+// condicionada por lo ya medido en su grupo.
 export async function probabilidadQubit(group, qubit) {
-  const sv = Statevector(construirCircuito(group));
-  return Array.from(sv.probabilities([qubit]).toJs());
+  return marginal(distribucionGrupo(group), qubit);
 }
 
 // Lo mismo para todos los qubits del grupo con un solo Statevector: devuelve [[P(0), P(1)], ...] por qubit.
 export async function probabilidadesGrupo(group) {
-  const sv = Statevector(construirCircuito(group));
-  return Array.from({ length: group.qubits }, (_, q) => Array.from(sv.probabilities([q]).toJs()));
+  const p = distribucionGrupo(group);
+  return Array.from({ length: group.qubits }, (_, q) => marginal(p, q));
 }
 
 // [P(+), P(−)] de cada qubit del grupo: agrega una H y mide en la base X. No colapsa nada.
 // Si el qubit está entrelazado, la fase no es de la carta sola y suele dar cerca de 50/50.
 export async function probabilidadesFaseGrupo(group) {
-  const salida = [];
-  for (let q = 0; q < group.qubits; q++) {
-    const sv = Statevector(construirCircuito({ qubits: group.qubits, ops: [...group.ops, ['h', q]] }));
-    salida.push(Array.from(sv.probabilities([q]).toJs()));
-  }
-  return salida;
+  return Array.from({ length: group.qubits }, (_, q) => marginal(distribucionGrupo(group, [['h', q]]), q));
 }
 
-// [P(0), P(1)] de una carta, lo que ve su dueño. Una carta clásica devuelve null; una ya colapsada es segura.
+// [P(0), P(1)] de una carta, lo que ve su dueño. Una carta clásica devuelve null; una ya medida es segura.
 export async function probabilidadCarta(state, idCarta) {
   const c = state.cards[idCarta];
   if (!c.group) return null;
   const g = state.groups[c.group];
-  if (g.collapsed) return g.bits[c.qubit] === 0 ? [1, 0] : [0, 1];
+  const medido = g.bits?.[c.qubit];
+  if (medido != null) return medido === 0 ? [1, 0] : [0, 1];
   return probabilidadQubit(g, c.qubit);
 }
 
-// Mide el grupo entero una sola vez en el backend y devuelve bits[q] = resultado del qubit q.
+// Mide el grupo en el backend y devuelve bits[q] = resultado del qubit q, compatible con los qubits
+// que ya estaban medidos (group.bits). Quien llama solo usa el bit de la carta jugada (medición parcial).
+// Sin qubits medidos alcanza 1 shot. Con qubits medidos se piden varios y se descartan los que no
+// coinciden con ellos (post-selección); si ninguno coincide, se muestrea la distribución exacta.
 // Qiskit escribe los resultados con el qubit 0 a la DERECHA ('10' = qubit1 en 1, qubit0 en 0).
 export async function medirGrupo(group, backend) {
-  const job = await backend.run(construirCircuito(group, { medir: true }), { shots: 1 });
+  const fijos = group.bits || [];
+  const hayFijos = fijos.some(b => b != null);
+  const job = await backend.run(construirCircuito(group, { medir: true }), { shots: hayFijos ? SHOTS_CONDICIONADOS : 1 });
   const counts = (await job.result()).get_counts().toJs();
-  const clave = counts instanceof Map ? [...counts.keys()][0] : Object.keys(counts)[0];
-  return Array.from({ length: group.qubits }, (_, q) => Number(clave[clave.length - 1 - q]));
+  const entradas = counts instanceof Map ? [...counts.entries()] : Object.entries(counts);
+
+  const candidatos = [];
+  for (const [clave, n] of entradas) {
+    const bits = Array.from({ length: group.qubits }, (_, q) => Number(clave[clave.length - 1 - q]));
+    if (bits.every((b, q) => fijos[q] == null || fijos[q] === b)) candidatos.push([bits, Number(n) || 1]);
+  }
+  if (candidatos.length) {
+    const total = candidatos.reduce((s, [, n]) => s + n, 0);
+    let r = Math.random() * total;
+    for (const [bits, n] of candidatos) { r -= n; if (r < 0) return bits; }
+    return candidatos[candidatos.length - 1][0];
+  }
+  const idx = elegirIndice(distribucionGrupo(group));
+  return Array.from({ length: group.qubits }, (_, q) => (idx >> q) & 1);
 }

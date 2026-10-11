@@ -42,9 +42,15 @@ export async function probabilidadesFaseGrupo(group) {
 // --- Medición (colapso) ---
 // Devuelve una muestra de TODOS los qubits del grupo, compatible con los que ya estaban medidos
 // (group.bits). Quien llama solo usa el bit de la carta jugada: la medición es parcial.
+// Si el motor remoto (Qiskit/IonQ) falla (red, timeout, job fallido), se mide con el
+// simulador de referencia: el juego nunca queda esperando una medición que no llega.
 export async function medirGrupo(group) {
-  if (engine === 'qiskit') return qiskit.medirGrupo(group, backend);
-  if (engine === 'ionq') return ionq.medirGrupo(group);
+  try {
+    if (engine === 'qiskit') return await qiskit.medirGrupo(group, backend);
+    if (engine === 'ionq') return await ionq.medirGrupo(group);
+  } catch (error) {
+    console.warn(`Medición con ${engine} falló (${error?.message ?? error}); se usa la referencia.`);
+  }
   return referencia.muestrear(group);
 }
 

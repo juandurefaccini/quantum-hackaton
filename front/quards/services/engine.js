@@ -7,6 +7,7 @@ export {
   aplicarCnot,
   otorgarPuerta,
   sortearPuerta,
+  barajar,
   CATALOGO,
   COLORS,
 } from '../../../back/estado.js';

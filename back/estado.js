@@ -26,7 +26,7 @@ function siguiente(seed) {
   return { value: ((t ^ (t >>> 14)) >>> 0) / 4294967296, seed: s };
 }
 
-function barajar(items, seed) {
+export function barajar(items, seed) {
   const a = items.slice();
   for (let i = a.length - 1; i > 0; i--) {
     const r = siguiente(seed);
@@ -154,8 +154,8 @@ export function sortearPuerta(seed, puertas = CATALOGO.puertas) {
   return { gate: puertas[Math.floor(r.value * puertas.length)], seed: r.seed };
 }
 
-// Cada vez que empieza el turno de un jugador recibe una puerta al azar. Modifica `state`
-// directamente: el motor la va a llamar sobre una copia del estado, cada vez que cambie el turno.
+// Le da una puerta al azar al jugador del turno actual. Modifica `state` directamente. Cuándo darla
+// (cadencia y tope) lo decide quien la llama: ver PUERTAS en front/quards/services/rules.js.
 export function otorgarPuerta(state) {
   const jugador = state.players[state.turn.current];
   const s = sortearPuerta(state.rng.seed);

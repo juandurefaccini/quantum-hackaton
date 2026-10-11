@@ -27,7 +27,7 @@ export async function health() {
   }
 }
 
-function bitsFromResults(results, qubits, fixed = []) {
+function bitsFromResults(results, qubits, fixed = [], random = Math.random) {
   // El simulador ideal de IonQ devuelve probabilidades con claves = índice decimal
   // de estado (qubit 0 = bit menos significativo). Un QPU devuelve `histogram`
   // con bitstrings. En ambos casos muestreamos UNA vez para colapsar.
@@ -54,14 +54,14 @@ function bitsFromResults(results, qubits, fixed = []) {
   if (!usables.length) throw new Error('IonQ: ninguna muestra es compatible con los qubits ya medidos');
 
   const total = usables.reduce((s, [, v]) => s + v, 0) || 1;
-  let r = Math.random() * total, acc = 0, idx = usables[usables.length - 1][0];
+  let r = random() * total, acc = 0, idx = usables[usables.length - 1][0];
   for (const [i, v] of usables) { acc += v; if (r < acc) { idx = i; break; } }
   return Array.from({ length: qubits }, (_, q) => (idx >> q) & 1);
 }
 
 // Mide el grupo una vez. target: 'simulator' (ideal) o un QPU (ej. 'qpu.aria-1').
 // Con qubits ya medidos se piden más shots para poder quedarse con las muestras compatibles.
-export async function medirGrupo(group, { target = 'simulator', shots, pollMs = 400, timeoutMs = 90000 } = {}) {
+export async function medirGrupo(group, { target = 'simulator', shots, pollMs = 400, timeoutMs = 90000, random = Math.random } = {}) {
   const fijos = group.bits || [];
   const nShots = shots ?? (fijos.some(b => b != null) ? 512 : 1);
   const created = await (await fetch(`${base()}/v0.3/jobs`, {
@@ -81,5 +81,5 @@ export async function medirGrupo(group, { target = 'simulator', shots, pollMs = 
   }
 
   const results = await (await fetch(`${base()}/v0.3/jobs/${created.id}/results`)).json();
-  return bitsFromResults(results, group.qubits, fijos);
+  return bitsFromResults(results, group.qubits, fijos, random);
 }

@@ -1,4 +1,4 @@
-// SIMULADOR DE REFERENCIA (solo para pruebas en Node)
+// SIMULADOR DE REFERENCIA (motor local: tests en Node y juego sin Qollab)
 // El juego calcula y mide con Qiskit (ver quantum/qiskit.js). Este archivo existe porque Qiskit no
 // corre en Node: sirve para contrastar los resultados de Qiskit y para correr tests sin Qollab.
 //
@@ -8,6 +8,9 @@
 // hay que pasar a números complejos.
 //
 // Los estados se numeran con el qubit q en el bit q: el índice 5 (binario 101) es qubit0=1, qubit1=0, qubit2=1.
+
+import { condicionar, marginal, elegirIndice } from './util.js';
+export { condicionar, marginal, elegirIndice }; // se siguen exponiendo desde acá
 
 function aplicar1(amp, q, [[a, b], [c, d]]) {
   const bit = 1 << q;
@@ -65,28 +68,6 @@ export function distribucion(group) {
 // (una carta medida ya no recibe puertas) y conmutan con la proyección de los medidos.
 // ---------------------------------------------------------------------------
 
-// Filtra una distribución conjunta por los bits ya medidos y la renormaliza.
-export function condicionar(p, bits = []) {
-  const out = new Array(p.length).fill(0);
-  let total = 0;
-  for (let i = 0; i < p.length; i++) {
-    let ok = true;
-    for (let q = 0; q < bits.length; q++) {
-      if (bits[q] != null && ((i >> q) & 1) !== bits[q]) { ok = false; break; }
-    }
-    if (ok) { out[i] = p[i]; total += p[i]; }
-  }
-  if (total > 1e-12) for (let i = 0; i < out.length; i++) out[i] /= total;
-  return out;
-}
-
-// [P(0), P(1)] del qubit q dentro de una distribución conjunta.
-export function marginal(p, q) {
-  let p1 = 0;
-  for (let i = 0; i < p.length; i++) if ((i >> q) & 1) p1 += p[i];
-  return [1 - p1, p1];
-}
-
 // Distribución conjunta del grupo condicionada a sus bits medidos. `extra` agrega ops solo para este cálculo.
 export function distribucionCondicionada(group, extra = []) {
   const g = extra.length ? { qubits: group.qubits, ops: [...group.ops, ...extra] } : group;
@@ -103,18 +84,10 @@ export function probabilidadFaseQubit(group, q) {
   return marginal(distribucionCondicionada(group, [['h', q]]), q);
 }
 
-// Elige un índice según la distribución p (r = número al azar en [0, 1)).
-export function elegirIndice(p, r = Math.random()) {
-  let acc = 0;
-  for (let i = 0; i < p.length; i++) { acc += p[i]; if (r < acc) return i; }
-  let last = p.length - 1;
-  while (last > 0 && p[last] <= 0) last--; // por redondeo: nunca un estado imposible
-  return last;
-}
-
 // Muestra TODOS los qubits del grupo, compatible con los ya medidos: devuelve bits[q].
-export function muestrear(group) {
-  const idx = elegirIndice(distribucionCondicionada(group));
+// `r` (opcional, en [0, 1)) fija el azar: sirve para tests reproducibles.
+export function muestrear(group, r = Math.random()) {
+  const idx = elegirIndice(distribucionCondicionada(group), r);
   return Array.from({ length: group.qubits }, (_, q) => (idx >> q) & 1);
 }
 

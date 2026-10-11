@@ -13,8 +13,8 @@ import { playCollapse } from './collapse.js';
 const SYM = { skip: '⊘', reverse: '⇄', draw2: '+2', wild: '★', wild4: '+4' };
 const GATE_HINT = {
   x: 'X: intercambia las probabilidades de las dos caras.',
-  z: 'Z: invierte la fase (+ ↔ −); no cambia las probabilidades.',
-  h: 'H: deja la carta en superposición 50/50.',
+  z: 'Z: invierte la fase (+ ↔ −); no cambia las probabilidades, pero sí el resultado de una H posterior.',
+  h: 'H: convierte la fase en probabilidad: suele dejar la carta muy inclinada hacia una cara (la fase, que cambia con Z, decide cuál).',
   cnot: 'CNOT: entrelaza dos cartas (control → target). El target puede ser una carta de la IA.',
 };
 const el = (tag, props = {}, ...children) => {
@@ -123,11 +123,14 @@ function flyCards(deckEl, targetEl, count) {
 const SPY_CSS = `
   .chip.eye { cursor: pointer; }
   .chip.eye.active { outline: 2px solid #e6b23a; outline-offset: 2px; }
+  .eye-next { opacity: 0.7; font-size: 0.85em; }
   .card.spy-target { outline: 2px solid #e6b23a; outline-offset: 2px; cursor: pointer; }
-  .card.spy-target:hover { filter: brightness(1.3); }
+  /* main.css pone pointer-events:none a las cartas del rival: acá se habilitan solo las que son objetivo */
+  .hand.opp .card.spy-target { pointer-events: auto; }
+  .hand.opp > .spy-target:hover { z-index: 6; filter: brightness(1.3); }
   .card.spied { position: relative; }
-  .card .spy-mark { position: absolute; top: 6px; right: 8px; font-size: 14px; pointer-events: none; }
-  .spy-toast { display: none; position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 1000;
+  .card .spy-mark { position: absolute; top: 4px; right: 5px; font-size: 11px; line-height: 1; color: #f1e8d6; text-shadow: 0 1px 2px #000; pointer-events: none; }
+  .spy-toast { display: none; position: fixed; top: 50%; right: 18px; transform: translateY(-50%); z-index: 1000;
     background: #16130f; border: 2px solid #e6b23a; border-radius: 12px; padding: 12px 16px; color: #f1e8d6;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6); min-width: 240px; }
   .spy-toast.show { display: block; }
@@ -136,6 +139,60 @@ const SPY_CSS = `
   .spy-toast .spy-text { display: flex; flex-direction: column; gap: 2px; }
   .spy-toast .spy-text b { font-size: 1.4em; }
 `;
+// Glitch de las cartas cuánticas (sin medir): una ráfaga corta cada 5-8 s, desfasada por carta.
+// Todo en em: escala con el tamaño de la carta. Se apaga con movimiento reducido y bajo el mouse.
+const GLITCH_CSS = `
+  .card.k-qubit .inner-canvas { animation: qglitch var(--gl-dur, 6s) steps(1, end) var(--gl-delay, 0s) infinite; }
+  .card.k-qubit .inner-canvas::after {
+    content: ""; position: absolute; left: 0; right: 0; top: -12%; height: 7%; z-index: 3;
+    background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0.28), rgba(255,255,255,0));
+    mix-blend-mode: screen; opacity: 0; pointer-events: none;
+    animation: qscan var(--gl-dur, 6s) linear var(--gl-delay, 0s) infinite;
+  }
+  .card.k-qubit .sym { animation: qglitch-sym var(--gl-dur, 6s) steps(1, end) var(--gl-delay, 0s) infinite; }
+  .card.k-qubit:hover .inner-canvas, .card.k-qubit:hover .inner-canvas::after, .card.k-qubit:hover .sym { animation: none; }
+
+  @keyframes qglitch {
+    0%, 91.9% { transform: none; clip-path: none; filter: none; }
+    92%   { transform: translate(-0.05em, 0); filter: drop-shadow(-0.07em 0 rgba(0, 255, 255, 0.75)) drop-shadow(0.07em 0 rgba(255, 40, 110, 0.75)); }
+    93.4% { transform: translate(0.08em, 0); clip-path: inset(16% 0 64% 0); filter: drop-shadow(-0.07em 0 rgba(0, 255, 255, 0.75)) drop-shadow(0.07em 0 rgba(255, 40, 110, 0.75)); }
+    94.8% { transform: translate(-0.06em, 0.02em); clip-path: inset(60% 0 12% 0); filter: hue-rotate(35deg) drop-shadow(0.07em 0 rgba(0, 255, 255, 0.75)) drop-shadow(-0.07em 0 rgba(255, 40, 110, 0.75)); }
+    96.2% { transform: translate(0.03em, 0); clip-path: none; filter: drop-shadow(-0.05em 0 rgba(0, 255, 255, 0.6)) drop-shadow(0.05em 0 rgba(255, 40, 110, 0.6)); }
+    97.4%, 100% { transform: none; clip-path: none; filter: none; }
+  }
+  @keyframes qglitch-sym {
+    0%, 91.9% { text-shadow: none; }
+    92%, 96.2% { text-shadow: -0.05em 0 rgba(0, 255, 255, 0.85), 0.05em 0 rgba(255, 40, 110, 0.85); }
+    97.4%, 100% { text-shadow: none; }
+  }
+  @keyframes qscan {
+    0%, 91.9% { top: -12%; opacity: 0; }
+    92% { top: -12%; opacity: 1; }
+    97% { top: 105%; opacity: 1; }
+    97.5%, 100% { top: 105%; opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card.k-qubit .inner-canvas, .card.k-qubit .inner-canvas::after, .card.k-qubit .sym { animation: none; }
+  }
+`;
+function ensureGlitchStyles() {
+  if (document.getElementById('quards-glitch-styles')) return;
+  const tag = document.createElement('style');
+  tag.id = 'quards-glitch-styles';
+  tag.textContent = GLITCH_CSS;
+  document.head.append(tag);
+}
+
+// Fase del glitch de una carta: depende del id y del reloj global, así no se reinicia (ni se sincroniza
+// con las demás) cada vez que render() reconstruye la mano.
+function glitchPhase(node, id) {
+  const h = [...String(id)].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7);
+  const dur = 5 + (h % 31) / 10; // 5.0 a 8.0 s entre ráfagas
+  const phase = (performance.now() / 1000 + (h % 100) / 10) % dur;
+  node.style.setProperty('--gl-dur', `${dur.toFixed(2)}s`);
+  node.style.setProperty('--gl-delay', `-${phase.toFixed(2)}s`);
+}
+
 function ensureSpyStyles() {
   if (document.getElementById('quards-spy-styles')) return;
   const tag = document.createElement('style');
@@ -144,14 +201,22 @@ function ensureSpyStyles() {
   document.head.append(tag);
 }
 
+// Limpieza de la instancia anterior: si mount() se llama de nuevo, no quedan listeners ni el fondo corriendo.
+let teardownPrev = null;
+
 export async function mount(root) {
+  teardownPrev?.();
+  const ac = new AbortController();
+  let stopBg = () => {};
+  teardownPrev = () => { ac.abort(); stopBg(); };
   ensureSpyStyles();
+  ensureGlitchStyles();
   audio.armAudio();
   root.replaceChildren();
 
   const bg = el('canvas', { class: 'bg', width: 320, height: 180 });
   const crt = el('div', { class: 'crt' });
-  try { startBackground(bg); } catch (error) { warn(`fondo WebGL no disponible: ${error?.message ?? error}`); }
+  try { stopBg = startBackground(bg); } catch (error) { warn(`fondo WebGL no disponible: ${error?.message ?? error}`); }
 
   const health = await quantum.ionqHealth().catch(() => ({ ok: false, hasKey: false }));
   const hasIonQ = !quantum.isQollab() && health.ok && health.hasKey;
@@ -166,7 +231,7 @@ export async function mount(root) {
   let selectedId = null;
   let press = null;
   let busy = false;
-  let inspected = null; // { id, p }: carta bajo el mouse (resumen de estado en el sidebar)
+  let inspected = null; // { id, p }: carta bajo el mouse (resumen de estado en el panel de info)
   const probCache = new Map();
   const phaseCache = new Map();
   // La clave incluye el circuito y los bits ya medidos: no se mezcla entre partidas ni entre mediciones.
@@ -188,17 +253,14 @@ export async function mount(root) {
   const handEl = el('div', { class: 'hand mine' });
   const gatesEl = el('div', { class: 'gates' });
   const turnEl = el('span', { class: 'turn' });
-  const statusEl = el('p', { class: 'status', role: 'status', 'aria-live': 'polite' });
   const hintEl = el('p', { class: 'hint-text', role: 'note', 'aria-live': 'polite' });
   const hintTitleEl = el('span', { class: 'hint-title' }, 'Info');
   const stateEl = el('div', { class: 'hint-state' });
   const hintBoxEl = el('div', { class: 'hint-box' }, hintTitleEl, hintEl, stateEl);
-  const logEl = el('div', { class: 'log' });
-  const statYouEl = el('span', { class: 'n' }, '0');
-  const statAiEl = el('span', { class: 'n' }, '0');
-  const statDeckEl = el('span', { class: 'n' }, '0');
   const drawBtn = el('button', { class: 'draw', type: 'button' }, 'Robar');
   const eyeBtn = el('button', { class: 'chip eye', type: 'button' }, '👁');
+  const eyeNextEl = el('span', { class: 'eye-next' });
+  const gateNextEl = el('span', { class: 'eye-next' });
   const spyToastEl = el('div', { class: 'spy-toast', role: 'status', 'aria-live': 'polite' });
   const newBtn = el('button', { class: 'ghost', type: 'button' }, 'Nueva partida');
   const markCb = el('input', { type: 'checkbox' });
@@ -215,11 +277,11 @@ export async function mount(root) {
 
   const isHumanTurn = () => state.phase === 'play' && state.turn.current === 0 && !busy;
 
-  // Texto contextual del cuadro informativo (arriba del botón Robar).
+  // Texto contextual del panel de info (en el centro de la mesa).
   function contextHint() {
     if (state.phase === 'over') return state.winner === 'p1' ? 'Ganaste. Empezá una nueva partida cuando quieras.' : 'Ganó la IA. Probá otra vez.';
     if (!isHumanTurn()) return 'La IA está pensando… Pasá el mouse por tus cartas para ver su estado.';
-    if (!rules.hasMove(state)) return 'No tenés jugadas posibles: robá una carta (el botón está encendido).';
+    if (!rules.hasMove(state)) return 'No tenés jugadas posibles: robá una carta (botón debajo del mazo).';
     return 'Tu turno: jugá una carta o prepará con una puerta.';
   }
 
@@ -291,6 +353,7 @@ export async function mount(root) {
       });
     }
     if (c.group && !c.face) {
+      glitchPhase(node, id);
       const show = () => { inspected = { id, p: probs, ph: phase }; renderState(); };
       const leave = () => { inspected = null; renderState(); };
       node.addEventListener('pointerenter', show);
@@ -418,7 +481,10 @@ export async function mount(root) {
   async function onEye() {
     if (!isHumanTurn()) return;
     if (spyMode) spyMode = false;
-    else if (state.players[0].spies > 0) { spyMode = true; pendingGate = null; selectedId = null; }
+    else if (state.players[0].spies > 0) {
+      if (!state.players[1].hand.some(id => state.cards[id].group && !state.cards[id].face)) { hintEl.textContent = 'La IA no tiene cartas cuánticas sin medir para espiar.'; return; }
+      spyMode = true; pendingGate = null; selectedId = null;
+    }
     else { hintEl.textContent = 'No te quedan espías.'; return; }
     audio.tick();
     await render();
@@ -488,43 +554,64 @@ export async function mount(root) {
 
   function startPress(id, event) {
     if (!isHumanTurn()) return;
-    press = { id, el: event.currentTarget, startX: event.clientX, startY: event.clientY, active: false, ghost: null };
+    const node = event.currentTarget;
+    press = { id, el: node, startX: event.clientX, startY: event.clientY, active: false, ghost: null, rect: node.getBoundingClientRect() };
+    // La captura mantiene el seguimiento aunque el mouse salga de la carta (o de la ventana).
+    try { node.setPointerCapture(event.pointerId); } catch { /* sin captura */ }
   }
-  function isOver(event, node) {
+  // `slack` agranda la zona de suelta para que no haya que apuntar con precisión.
+  function isOver(event, node, slack = 0) {
     const r = node.getBoundingClientRect();
-    return event.clientX >= r.left && event.clientX <= r.right && event.clientY >= r.top && event.clientY <= r.bottom;
+    return event.clientX >= r.left - slack && event.clientX <= r.right + slack && event.clientY >= r.top - slack && event.clientY <= r.bottom + slack;
+  }
+  function endDrag() {
+    if (!press) return;
+    press.ghost?.remove();
+    press.el?.classList.remove('dragging');
+    document.body.classList.remove('is-dragging');
+    discardEl.classList.remove('drop-target');
   }
   function onPointerMove(event) {
     if (!press) return;
     if (!press.active && !pendingGate && rules.canPlay(state, press.id) && Math.hypot(event.clientX - press.startX, event.clientY - press.startY) > 6) {
       press.active = true;
+      // Clon limpio: sin estados de la mano y con el mismo tamaño que la carta real
+      // (el body no hereda el --card-w grande de la mano).
+      const ghost = press.el.cloneNode(true);
+      ghost.removeAttribute('data-id');
+      ghost.classList.remove('dragging', 'playable', 'selected');
+      ghost.classList.add('drag-ghost');
+      const w = press.rect.width;
+      ghost.style.setProperty('--card-w', `${w}px`);
+      ghost.style.setProperty('--qard-w', `${w}px`);
+      ghost.style.width = `${w}px`;
+      press.ghost = ghost;
+      document.body.append(ghost);
       press.el.classList.add('dragging');
-      press.ghost = press.el.cloneNode(true);
-      press.ghost.classList.add('drag-ghost');
-      document.body.append(press.ghost);
+      document.body.classList.add('is-dragging');
+      inspected = null; renderState();
     }
     if (press.active) {
       press.ghost.style.left = `${event.clientX}px`;
       press.ghost.style.top = `${event.clientY}px`;
-      discardEl.classList.toggle('drop-target', isOver(event, discardEl));
+      discardEl.classList.toggle('drop-target', isOver(event, discardEl, 28));
     }
   }
   function onPointerUp(event) {
     if (!press) return;
     const p = press; press = null;
     if (p.active) {
-      p.el.classList.remove('dragging');
-      if (p.ghost) p.ghost.remove();
-      discardEl.classList.remove('drop-target');
-      if (isOver(event, discardEl)) doPlay(p.id);
+      press = p; endDrag(); press = null;
+      if (isOver(event, discardEl, 28)) doPlay(p.id);
       return;
     }
     onCardTap(p.id);
   }
-  window.addEventListener('resize', () => { fitHand(handEl); fitHand(oppHandEl); });
-  window.addEventListener('pointermove', onPointerMove);
-  window.addEventListener('pointerup', onPointerUp);
-  window.addEventListener('pointercancel', () => { if (press) { press.ghost?.remove(); press.el?.classList.remove('dragging'); discardEl.classList.remove('drop-target'); press = null; } });
+  const winOpts = { signal: ac.signal };
+  window.addEventListener('resize', () => { fitHand(handEl); fitHand(oppHandEl); }, winOpts);
+  window.addEventListener('pointermove', onPointerMove, winOpts);
+  window.addEventListener('pointerup', onPointerUp, winOpts);
+  window.addEventListener('pointercancel', () => { endDrag(); press = null; }, winOpts);
 
   discardEl.addEventListener('click', async () => {
     if (!isHumanTurn()) return;
@@ -587,7 +674,21 @@ export async function mount(root) {
   }
 
   // ---------- render ----------
-  async function render() {
+  // render() es async: si dos llamadas se solapan, ambas reconstruyen la mano a la vez y
+  // se duplican cartas. Se serializan: una sola corre y las que llegan mientras tanto
+  // piden UNA repetición al final (con el estado más nuevo).
+  let rendering = null;
+  let rerender = false;
+  function render() {
+    if (rendering) { rerender = true; return rendering; }
+    rendering = (async () => {
+      try { do { rerender = false; await renderNow(); } while (rerender); }
+      finally { rendering = null; }
+    })();
+    return rendering;
+  }
+
+  async function renderNow() {
     inspected = null; // los nodos de la mano se reconstruyen: se vuelve a fijar con el próximo hover
     const prevHandRects = new Map();
     handEl.querySelectorAll('.card').forEach(node => prevHandRects.set(node.dataset.id, node.getBoundingClientRect()));
@@ -607,14 +708,12 @@ export async function mount(root) {
     oppHandEl.replaceChildren(...opp.hand.map(id => {
       const node = el('div', { class: 'card facedown back' });
       const info = spied.get(id);
-      if (info) { node.classList.add('spied'); node.title = spiedLabel(info); node.append(el('span', { class: 'spy-mark' }, '👁')); }
-      if (rivalTargetable) { node.classList.add('spy-target'); node.addEventListener('click', () => onRivalTap(id)); }
+      if (info) { node.classList.add('spied'); node.title = spiedLabel(info); node.append(el('span', { class: 'spy-mark' }, info.k === null ? '👁' : `👁|${info.k}⟩`)); }
+      const esCuantica = !!state.cards[id].group && !state.cards[id].face;
+      if (rivalTargetable && esCuantica) { node.classList.add('spy-target'); node.addEventListener('click', () => onRivalTap(id)); }
       return node;
     }));
     oppCountEl.textContent = `${opp.hand.length} · ${opp.gates.length}🔑`;
-    statYouEl.textContent = me.hand.length;
-    statAiEl.textContent = opp.hand.length;
-    statDeckEl.textContent = state.deck.length;
 
     deckEl.replaceChildren(el('span', { class: 'count' }, state.deck.length));
     discardEl.replaceChildren(await cardEl(state.discard[state.discard.length - 1]));
@@ -647,20 +746,28 @@ export async function mount(root) {
       onclick: () => onGate(gate),
     }, gate.toUpperCase())));
 
+    // Próxima puerta: cadencia por turnos propios y tope en mano.
+    const { cadaTurnos: cadaPuerta, maximo: maxPuertas } = rules.PUERTAS;
+    if (me.gates.length >= maxPuertas) gateNextEl.textContent = `tope ${maxPuertas}`;
+    else if (cadaPuerta > 1) {
+      const t = me.turns || 1;
+      const falta = cadaPuerta - ((t - 1) % cadaPuerta);
+      gateNextEl.textContent = `+1 en ${falta} turno${falta === 1 ? '' : 's'} tuyo${falta === 1 ? '' : 's'}`;
+    } else gateNextEl.textContent = '';
+
     const spies = me.spies ?? 0;
+    const { cadaTurnos, maximo } = rules.ESPIAR;
+    const faltan = cadaTurnos > 0 && spies < maximo ? cadaTurnos - ((me.turns || 0) % cadaTurnos) : null;
     eyeBtn.textContent = `👁 ${spies}`;
     eyeBtn.disabled = !isHumanTurn() || (spies <= 0 && !spyMode);
     eyeBtn.classList.toggle('active', spyMode);
     eyeBtn.title = `Espiar una carta de la IA (${spies} disponible${spies === 1 ? '' : 's'})`;
+    eyeNextEl.textContent = faltan === null ? '' : `+1 en ${faltan} turno${faltan === 1 ? '' : 's'} tuyo${faltan === 1 ? '' : 's'}`;
 
     turnEl.textContent = state.phase === 'play' ? (state.turn.current === 0 ? 'Tu turno' : 'Turno de la IA…') : '';
-    if (state.phase === 'over') statusEl.textContent = state.winner === 'p1' ? '¡Ganaste!' : 'Ganó la IA.';
-    else if (spyMode) statusEl.textContent = 'Ojo: elegí una carta de la IA para espiarla.';
-    else if (pendingGate) statusEl.textContent = pendingGate.gate === 'cnot' ? 'CNOT: elegí control (tuyo) y después target (tuyo o de la IA).' : `${pendingGate.gate.toUpperCase()}: elegí una carta tuya.`;
-    else statusEl.textContent = isHumanTurn() ? 'Prepará con puertas (gratis) y jugá una carta.' : 'La IA está pensando…';
 
     if (pendingGate) hintEl.textContent = GATE_HINT[pendingGate.gate];
-    else if (spyMode) hintEl.textContent = 'Te muestro uno de los estados posibles de esa carta y la carta asociada.';
+    else if (spyMode) hintEl.textContent = 'Ojo: elegí una carta cuántica de la IA (las resaltadas) y te muestro uno de sus estados posibles con la carta asociada.';
     else if (selectedId) hintEl.textContent = 'Arrastrá la carta al descarte o clickeá el descarte para jugarla.';
     else hintEl.textContent = contextHint();
     renderState();
@@ -671,37 +778,26 @@ export async function mount(root) {
     drawBtn.disabled = !mustDraw;
     drawBtn.classList.toggle('only-option', mustDraw);
 
-    logEl.replaceChildren(...state.log.map((line, i) => el('div', { class: `line${i === state.log.length - 1 ? ' last' : ''}` }, line)));
-    logEl.scrollTop = logEl.scrollHeight;
 
     flyCards(deckEl, oppHandEl, grewOpp);
     flyCards(deckEl, handEl, grewMe);
   }
 
   const layout = el('div', { class: 'layout' },
-    el('aside', { class: 'sidebar' },
-      el('div', { class: 'side-info' }, turnEl, statusEl),
-      el('div', { class: 'stats' },
-        el('div', { class: 'stat' }, statYouEl, el('span', { class: 'k' }, 'Tú')),
-        el('div', { class: 'stat' }, statAiEl, el('span', { class: 'k' }, 'IA')),
-        el('div', { class: 'stat' }, statDeckEl, el('span', { class: 'k' }, 'Mazo'))),
-      el('h2', {}, 'Historial'),
-      logEl,
-      hintBoxEl,
-      el('div', { class: 'sidebar-draw' }, drawBtn)),
     el('main', { class: 'board' },
       el('section', { class: 'opponent' },
         el('div', { class: 'sec-head' }, el('span', { class: 'label' }, 'IA'), oppCountEl),
         oppHandEl),
       el('section', { class: 'table' },
-        el('div', { class: 'pile' }, el('span', { class: 'label' }, 'Mazo'), deckEl),
+        el('div', { class: 'pile' }, el('span', { class: 'label' }, 'Mazo'), deckEl, drawBtn),
+        hintBoxEl,
         el('div', { class: 'pile' }, el('span', { class: 'label' }, 'Descarte'), discardEl)),
       el('section', { class: 'mine' }, handEl),
-      el('section', { class: 'gates-row' }, el('span', { class: 'label' }, 'Puertas'), gatesEl, el('span', { class: 'label' }, 'Ojo'), eyeBtn)));
+      el('section', { class: 'gates-row' }, el('span', { class: 'label' }, 'Puertas'), gatesEl, gateNextEl, el('span', { class: 'label' }, 'Ojo'), eyeBtn, eyeNextEl)));
 
   const app = el('div', { class: 'app' },
     el('header', {},
-      el('div', { class: 'header-left' }, el('h1', {}, 'Quards'), badgeEl),
+      el('div', { class: 'header-left' }, el('h1', {}, 'Quards'), badgeEl, turnEl),
       el('div', { class: 'header-right' },
         el('label', { class: 'toggle', title: 'Resaltar las cartas que podrían jugarse' }, markCb, 'Jugables'),
         el('label', { class: 'toggle', title: 'Mostrar el panel de debug' }, debugCb, 'Debug'),
