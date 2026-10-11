@@ -113,6 +113,7 @@ la **medición** (el colapso real). Si el motor remoto falla, se cae al simulado
 │   │   ├── entangle.js       agrupado visual de cartas entrelazadas en la mano
 │   │   ├── circuit.js        SVG del circuito + tooltip  (huérfano, ver §11)
 │   │   ├── background.js     fondo WebGL 320×180
+│   │   ├── glitch.js         glitch WebGL de las cartas cuánticas (carta como textura + shader)
 │   │   ├── audio.js          SFX con osciladores (sin archivos)
 │   │   └── debug.js          panel de diagnóstico on-screen
 │   ├── quantum/qiskit-stub.js  stub de qiskit/qiskit.quantum_info (import map en dev)
@@ -390,8 +391,11 @@ orquesta el flujo de turnos (incluida la IA con pausas para que se siga la parti
   y la **medición** (`collapse.js`: barrido → colapso → resultado). Todo respeta
   `prefers-reduced-motion`.
 - **Estética:** `qard.js` (carta escalable con `--qard-w` + `aspect-ratio`, split diagonal + kets),
-  `background.js` (WebGL 320×180), `audio.js` (SFX sin archivos), `entangle.js` (cartas de un mismo
-  grupo contiguas y enmarcadas), `debug.js` (panel oculto que se destapa ante un error real).
+  `background.js` (WebGL 320×180), `glitch.js` (glitch WebGL de las cartas cuánticas: la carta se dibuja
+  en un canvas 2D como textura y un shader le aplica RGB split + desplazamiento de slices, así deforma
+  la imagen real; cada carta monta su canvas y se auto-libera al salir del DOM; cae a la carta estática
+  si no hay WebGL o con `prefers-reduced-motion`), `audio.js` (SFX sin archivos), `entangle.js` (cartas
+  de un mismo grupo contiguas y enmarcadas), `debug.js` (panel oculto que se destapa ante un error real).
 - **Re-render serializado:** `render()` encola una sola ejecución (evita duplicar cartas si dos
   llamadas se solapan).
 - **Narración (panel Info):** al resolverse una jugada/medición, `render.js` guarda una línea con la
