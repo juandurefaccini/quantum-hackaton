@@ -30,3 +30,4 @@ venv/
 
 # Build artifacts (project bundle)
 *.zip
+qollab/app/

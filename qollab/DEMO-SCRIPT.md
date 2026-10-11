@@ -88,4 +88,4 @@ Mostrá el tablero levantando en Qollab. Cerrá con el pie de atribución visibl
 ## Después de grabar
 
 - Subí el video a YouTube/Loom/Vimeo/Drive **público, sin login** (requisito del hackathon).
-- Reemplazá `<VIDEO_URL>` en `PROJECT-CARD.md` y `PROJECT-CARD.es.md`.
+- Reemplazá `<VIDEO_URL>` en `PROJECT-CARD.md`.

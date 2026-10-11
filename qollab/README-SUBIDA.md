@@ -1,7 +1,8 @@
 # Subir Qards a Qollab — pasos exactos
 
 Guía operativa para publicar el proyecto en Qollab antes del cierre del hackathon.
-El bundle ya está armado en [`app/`](app/) (y empaquetado en `qards-qollab.zip`).
+El bundle se genera con `node qollab/build.mjs` en `app/` (no se versiona: `qollab/app/` está en
+`.gitignore`, y el script lo reescribe entero cada vez).
 
 > **Estado de verificación:** el bundle se generó y se validó su grafo de imports y su lógica
 > cuántica contra Qiskit local (ver el resumen de la sesión). **La ejecución dentro de Qollab NO
@@ -42,13 +43,12 @@ Notas:
   Project Card / para vos). Solo importan los `.js`, `index.html` y `main.css`.
 - **No** subas `quantum/qiskit-stub.js` (el bundle no lo incluye): dentro de Qollab `qiskit` es el
   paquete real.
-- Límites: hasta 100 archivos de 2 MB. El bundle tiene 19 archivos pequeños.
+- Límites: hasta 100 archivos de 2 MB. El bundle tiene 23 archivos pequeños.
 
 ## 3. Project Card
 
-Pegá el Markdown de **[`PROJECT-CARD.md`](PROJECT-CARD.md)** (inglés, versión principal) en la pestaña
-**Project Card**. [`PROJECT-CARD.es.md`](PROJECT-CARD.es.md) es la traducción al español, con el mismo
-contenido y la misma estructura. Completá además:
+Pegá el Markdown de **[`PROJECT-CARD.md`](PROJECT-CARD.md)** (inglés) en la pestaña
+**Project Card**. Completá además:
 
 - **Thumbnail:** ya está generada en [`thumbnail.png`](thumbnail.png) (16:9, 2560×1440, con las cartas
   reales del juego). Subila a Qollab; si preferís, usá una captura del tablero en su lugar.

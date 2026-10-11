@@ -5,8 +5,7 @@ posibles, una por cada estado `|0⟩` y `|1⟩`. Es 1v1 (**persona vs. IA**). Ga
 **sin cartas en la mano**.
 
 > Documento de **producto/spec**. Para la implementación ver [`ARCHITECTURE.md`](ARCHITECTURE.md);
-> para las decisiones y su motivo, [`decisions.md`](decisions.md); para el estado del trabajo,
-> [`plan.md`](plan.md).
+> para las decisiones y su motivo, [`decisions.md`](decisions.md).
 
 ---
 

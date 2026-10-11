@@ -80,9 +80,8 @@ son exactas; IonQ solo aporta la **medición**; si el motor remoto falla, **cae 
 
 ## Gotchas / deuda técnica
 
-- `ui/circuit.js` fue **eliminado** (huérfano); el circuito vivo es `ui/circuit-overlay.js` (overlay "Ver circuito").
-- `utils/render.js` y `utils/rules.js` son **copias viejas y rotas** (NO son la app real; la app
-  está en `front/qards/`).
+- Deuda de limpieza ya resuelta: se eliminaron `ui/circuit.js` (huérfano), la copia vieja y rota
+  `utils/render.js` y el acceso directo de Windows `front - Acceso directo.lnk`. `utils/` queda solo con `zip.js`.
 - Los comodines eligen color automáticamente (no hay picker).
 - IonQ tarda ~3.6 s por medición (simulador); hay timeouts y fallback.
 
@@ -100,9 +99,8 @@ son exactas; IonQ solo aporta la **medición**; si el motor remoto falla, **cae 
 | `docs/ARCHITECTURE.md` | **Doc técnica canónica** (implementación) |
 | `docs/idea.md` | Concepto y spec funcional |
 | `docs/decisions.md` | Registro de decisiones + dónde viven |
-| `docs/plan.md` | Estado y roadmap |
 | `docs/gates.md` · `quantum-concepts.md` · `determinism.md` · `engines.md` | Puertas, conceptos, semilla, motores |
-| `docs/known-issues.md` · `roadmap.md` · `hackathon-brief.md` | Problemas, pendientes, brief del hackathon |
+| `docs/known-issues.md` · `roadmap.md` | Problemas conocidos, pendientes y roadmap |
 | `README.md` · `README.es.md` | Portada (inglés / español) + ejemplo Qiskit |
 
 ## Checklist antes de cerrar un cambio

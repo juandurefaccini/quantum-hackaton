@@ -25,13 +25,10 @@ Problemas detectados en las revisiones, ya corregidos:
 
 | Tema | Detalle | Ubicación |
 | :-- | :-- | :-- |
-| **`ui/circuit.js` huérfano** | Nadie lo importa (el tooltip de circuito se removió). Código muerto. | `front/qards/ui/circuit.js` |
-| **`utils/render.js` y `utils/rules.js`** | Copias viejas y **rotas**: importan rutas que no existen (`../services/`, `./engine.js`). No son la app real. | `utils/` |
-| **Acceso directo de Windows** | `front - Acceso directo.lnk`: basura sin valor. | `front/qards/` |
 | **Sin picker de color para comodines** | El color se elige **automáticamente** (el más frecuente de tu mano). | `services/rules.js` (`chooseWildColor`) |
 | **IA "difícil" no es expectimax** | Prueba puertas + mayor probabilidad; no estima la mano rival. | `services/ai.js` |
 | **`turn.direction` sin uso** | Existe en el estado, pero las reglas 2p no lo usan. | `back/estado.js` |
-| **`state.log` no se muestra** | Reglas escribe un historial de texto, pero la UI actual **no lo renderiza** (solo el viejo `utils/render.js`). La narración nueva usa otro canal (`lastEvent`). | `services/rules.js`, `ui/render.js` |
+| **`state.log` no se muestra** | Reglas escribe un historial de texto, pero la UI **no lo renderiza**; la narración usa otro canal (`lastEvent`). | `services/rules.js`, `ui/render.js` |
 | **Colapso no reproducible** | El armado está sembrado, pero la medición usa `Math.random`. Detalle y propuesta: [`determinism.md`](determinism.md). | `services/quantum.js` |
 
 ## Limitaciones de entorno (documentadas, no bugs)

@@ -1,6 +1,6 @@
 # Qards — Roadmap
 
-Qué falta, en orden de impacto. Estado actual en [`plan.md`](plan.md).
+Qué falta, en orden de impacto. Problemas conocidos en [`known-issues.md`](known-issues.md).
 
 ## Corto plazo (producto)
 
@@ -15,7 +15,7 @@ Qué falta, en orden de impacto. Estado actual en [`plan.md`](plan.md).
 
 | # | Tema | Detalle |
 | :- | :-- | :-- |
-| 5 | **Limpieza de deuda** | Borrar `utils/render.js`, `utils/rules.js` y `ui/circuit.js` (ver [`known-issues.md`](known-issues.md)). |
+| 5 | **Limpieza de deuda** | ✅ Hecha: `utils/render.js`, `utils/rules.js` y `ui/circuit.js` eliminados (ver [`known-issues.md`](known-issues.md)). |
 | 6 | **Más feedback de medición** | Mostrar cómo queda el **grupo entrelazado** tras una medición parcial (hoy solo la carta jugada). |
 | 7 | **Accesibilidad** | Revisar contraste y etiquetas ARIA del arrastre. |
 

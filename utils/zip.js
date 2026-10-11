@@ -28,6 +28,9 @@ const EXCLUDED_DIRS = new Set([
   '.vscode',
 ]);
 
+// Generated build output: regenerable with `node qollab/build.mjs`, not part of the source.
+const EXCLUDED_PATHS = new Set(['qollab/app']);
+
 const DEFAULT_OUTPUT = 'quantum-hackaton.zip';
 
 function isExcludedFile(name) {
@@ -45,9 +48,11 @@ function findProjectRoot() {
 function collectFiles(root, dir, files) {
   for (const name of readdirSync(dir).sort()) {
     const abs = join(dir, name);
+    const rel = relative(root, abs).split(sep).join('/');
     const stat = statSync(abs);
     if (stat.isDirectory()) {
-      if (!EXCLUDED_DIRS.has(name)) collectFiles(root, abs, files);
+      if (EXCLUDED_DIRS.has(name) || EXCLUDED_PATHS.has(rel)) continue;
+      collectFiles(root, abs, files);
     } else if (stat.isFile() && !isExcludedFile(name)) {
       files.push(abs);
     }

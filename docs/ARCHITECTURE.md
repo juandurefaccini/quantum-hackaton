@@ -1,8 +1,8 @@
 # Qards — Arquitectura técnica
 
 Documento técnico canónico del proyecto. Describe **cómo está construido y cómo funciona hoy**,
-verificado contra el código. Los documentos [`idea.md`](idea.md), [`decisions.md`](decisions.md) y
-[`plan.md`](plan.md) cubren producto, decisiones y estado; este cubre la implementación.
+verificado contra el código. Los documentos [`idea.md`](idea.md) y [`decisions.md`](decisions.md)
+cubren producto y decisiones; este cubre la implementación.
 
 > Qards es un **juego de cartas cuántico** 1v1 (humano vs IA). Cada carta es un qubit con dos resultados
 > posibles (uno por cada cara `|0⟩` y `|1⟩`). Gana quien se queda **sin cartas en la mano**.
@@ -87,7 +87,7 @@ la **medición** (el colapso real). Si el motor remoto falla, se cae al simulado
 ├── main.js                 entry JS del repo · importa front/qards/main.js
 ├── main.css                estilos de la app (raíz)
 ├── README.md · README.es.md   portada del repo (inglés / español)
-├── docs/                   toda la documentación (README · ARCHITECTURE · idea · decisions · plan · gates · quantum-concepts · determinism · engines · known-issues · roadmap · hackathon-brief · AGENTS)
+├── docs/                   toda la documentación (ARCHITECTURE · idea · decisions · gates · quantum-concepts · determinism · engines · known-issues · roadmap · AGENTS)
 ├── examples/               notebook Qiskit ejecutable + requirements.txt
 ├── assets/                 notas para grabar el demo (sin GIF)
 ├── back/                   MOTOR + capa cuántica (se importa desde el front)
@@ -464,17 +464,14 @@ Cobertura actual (`tests/services.test.js`, 7 tests, todos verdes):
 
 ## 11. Problemas conocidos / deuda técnica
 
-- **`ui/circuit.js` está huérfano:** nadie lo importa (el tooltip de circuito se removió del flujo
-  actual). Es código muerto.
-- **`utils/render.js` y `utils/rules.js` son copias viejas y rotas:** importan `../services/` y
-  `./engine.js`, rutas que **no existen** en `utils/`. Versión previa al refactor a `front/qards/`.
-- **`front/qards/front - Acceso directo.lnk`** es un acceso directo de Windows sin valor.
+- **Deuda de limpieza resuelta:** se eliminaron `ui/circuit.js` (huérfano), la copia vieja y rota
+  `utils/render.js` y el acceso directo de Windows `front/qards/front - Acceso directo.lnk`.
+  `utils/` queda solo con `zip.js`.
 - **Comodines:** el color se elige automáticamente (el más frecuente en la mano); falta el picker.
-- **IA difícil:** no es expectimax completo ni estima la mano rival (ver `plan.md`).
+- **IA difícil:** no es expectimax completo ni estima la mano rival (ver [`roadmap.md`](roadmap.md)).
 - **`turn.direction`** existe en el estado pero las reglas 2p no lo usan.
 - **`state.log`** se escribe en `rules.js` (historial de texto) pero la UI actual
-  (`front/qards/ui/render.js`) **no lo muestra**: la narración nueva usa `lastEvent`, no el log (el
-  viejo `utils/render.js` sí lo renderizaba).
+  (`front/qards/ui/render.js`) **no lo muestra**: la narración usa `lastEvent`, no el log.
 - **Motores remotos (`ionq`, `qiskit`):** **no verificados** en este repo (sin key ni Qollab). Ver
   [`engines.md`](engines.md).
 - **IonQ (simulador):** ~3.6 s por medición; hay timeouts y fallback a la referencia.
