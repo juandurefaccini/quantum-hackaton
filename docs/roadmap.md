@@ -1,4 +1,4 @@
-# Quards — Roadmap
+# Qards — Roadmap
 
 Qué falta, en orden de impacto. Estado actual en [`plan.md`](plan.md); ideas cuánticas más grandes en
 [`mejoras/`](mejoras/).

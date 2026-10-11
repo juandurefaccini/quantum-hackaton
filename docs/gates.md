@@ -1,4 +1,4 @@
-# Quards — Puertas
+# Qards — Puertas
 
 Las **puertas** son operaciones cuánticas que se aplican a tus cartas **antes de jugarlas**. No
 miden: la carta se queda en superposición (con otras probabilidades y/o fase) hasta que la jugás.
@@ -67,4 +67,4 @@ Salida esperada: `ry` → `[0.90, 0.10]` con fase `[0.80, 0.20]`; `+X` → `[0.1
 `[0.80, 0.20]`; `+Z` → `[0.90, 0.10]` con fase `[0.20, 0.80]`.
 
 > Para ver las mismas operaciones en Qiskit (que es el backend real del juego en Qollab), corré
-> [`../examples/quards_circuit.ipynb`](../examples/quards_circuit.ipynb).
+> [`../examples/qards_circuit.ipynb`](../examples/qards_circuit.ipynb).

@@ -1,24 +1,19 @@
 <!--
-Topics (configuración del repo): qiskit, quantum-game, ionq, quantum-computing, unocards, educational
+Topics (configuración del repo): qiskit, quantum-game, ionq, quantum-computing, card-game, educational
 -->
 
-# Quards — UNO cuántico
+# Qards — juego de cartas cuántico
 
 [English](README.md) · [Español](README.es.md)
 
 **Cada carta es un qubit:** tiene dos caras posibles a la vez y colapsa a una sola recién cuando la jugás.
-
-![Una jugada midiéndose](assets/demo.gif)
-
-> **Placeholder del GIF.** Grabá ~10s de un turno normal (robar → aplicar una puerta → jugar una
-> carta → la animación de colapso) y guardalo como `assets/demo.gif`. Ver [`assets/`](assets/).
 
 ## Jugalo ahora
 
 Un comando (Node.js 18+, sin `npm install`, sin build):
 
 ```bash
-node front/quards/dev-server.mjs
+node front/qards/dev-server.mjs
 ```
 
 Después abrí <http://localhost:8000>. El motor por defecto es un simulador local, así que **no
@@ -28,7 +23,7 @@ necesitás claves ni cuenta** para jugar.
 
 Vos vs. la IA, 1v1. **Gana quien se queda sin cartas en la mano** (las puertas no cuentan).
 
-- Arrancás con **7 cartas**. Una carta es **clásica** (una sola cara — los colores/números de UNO) o
+- Arrancás con **7 cartas**. Una carta es **clásica** (una sola cara — un color y un símbolo fijos) o
   **cuántica** (dos caras posibles, p. ej. *Rojo 5* / *Azul 2*).
 - En tu turno podés **preparar gratis** y después **jugar una vez**:
   - **Preparar:** aplicar tus **puertas** — `X`, `Z`, `H` (a una carta) o `CNOT` (a dos). No cuesta
@@ -47,6 +42,48 @@ Vos vs. la IA, 1v1. **Gana quien se queda sin cartas en la mano** (las puertas n
 
 Reglas completas: [`docs/idea.md`](docs/idea.md).
 
+## Mover las probabilidades: jugadas favorables con puertas
+
+Antes de jugar una carta podés gastar puertas: son gratis y **no miden**. Cada una cambia el estado de
+la carta, así que **la medición que estás por hacer cae más seguido en la cara que querés**. Hay tres
+palancas:
+
+| Palanca | Qué hace | Ejemplo (cara \|0⟩ / cara \|1⟩) |
+| :-- | :-- | :-- |
+| `X` | intercambia las dos caras | 20 % / 80 % → **80 % / 20 %** |
+| `H` | convierte la **fase** en probabilidad, hacia la cara que indica la línea **`Fase`** | 50 % / 50 % (`Fase +`) → **≈100 % / 0 %** |
+| `Z` | invierte la fase (invisible sola); **elige hacia qué lado** la manda una `H` posterior | — |
+| `CNOT` | **liga dos cartas**: lo que mide una, lo sigue la otra | ver jugada 3 |
+
+Regla práctica: **`X` para quedarte con la otra cara, `H` para comprometerte, `Z` antes de `H` para
+elegir el lado, `CNOT` para que una segunda carta comparta la suerte de la primera.**
+
+**Jugada 1 — rescatar una carta mala con `X`.** Tu carta dice *Rojo 5* 20 % / *Azul 2* 80 %, y *Azul 2*
+es lo que matchea el descarte. Aplicás `X`: las caras se dan vuelta y *Azul 2* queda al 80 %. Sin azar.
+
+**Jugada 2 — comprometerse con `H`, leyendo la línea `Fase`.** Pasá el mouse por la carta: el panel
+Info muestra `Fase +` o `Fase −`. Aplicar `H` manda la carta a la cara que apunta la fase, con **al
+menos 80 %** (una 50 / 50 lisa va a ≈100 %):
+- 80 % / 20 % con `Fase +` → `H` → **90 % / 10 %**
+- 50 % / 50 % con `Fase +` → `H` → **≈100 % / 0 %**
+
+¿Querés la *otra* cara? Gastá `Z` primero: invierte la fase, y después `H` cae del lado opuesto
+(80 % / 20 % `Fase +` → `Z` → `H` → **10 % / 90 %**). `Z` sola nunca cambia las probabilidades: solo
+apunta la `H`.
+
+**Jugada 3 — ligar dos cartas con `CNOT`.** El `CNOT` no sube una carta: **correlaciona** dos. Entrelazá
+una carta que vas a leer (el control) con una que querés conservar: una carta al 90 % ligada a un
+control 50 / 50 pasa a medir, apenas medís el control, ~90 % en el bit que sacó el control (50 / 50 es
+una moneda justa, pero la carta ligada queda fijada). Sirve para elegir *cuándo* se define una carta.
+También puede entrelazar una carta del rival (el control sigue siendo tuyo).
+
+Costo: las puertas escasean — recibís **1 cada 2 turnos tuyos** y guardás hasta **3** — y **una carta
+ya medida es clásica: no acepta más puertas.** Cada jugada de arriba es un trueque real, no un reroll
+gratis.
+
+Todos los números salen del simulador de referencia del juego; además, `H·Z·H ≡ X` se contrasta contra
+el `Statevector` de Qiskit (la suite de tests y `examples/qards_circuit.py`).
+
 ## La parte cuántica
 
 | Pieza del juego | Objeto cuántico | Dónde en el código |
@@ -56,7 +93,7 @@ Reglas completas: [`docs/idea.md`](docs/idea.md).
 | Grupo entrelazado | Dos o más qubits que comparten un circuito (**CNOT**) | `back/estado.js` (`aplicarCnot`) |
 | Puerta X / Z / H | Puerta de un qubit: `X` (bit flip), `Z` (fase), `H` (fase↔probabilidad) | `back/quantum/referencia.js` |
 | Puerta CNOT | Puerta entrelazante de dos qubits | `back/quantum/referencia.js` |
-| Jugar una carta | **Medición** (colapso del grupo) | `front/quards/services/quantum.js` |
+| Jugar una carta | **Medición** (colapso del grupo) | `front/qards/services/quantum.js` |
 
 Efecto de cada puerta, verificado contra el simulador: [`docs/gates.md`](docs/gates.md). Conceptos en
 lenguaje llano: [`docs/quantum-concepts.md`](docs/quantum-concepts.md).
@@ -64,8 +101,8 @@ lenguaje llano: [`docs/quantum-concepts.md`](docs/quantum-concepts.md).
 ## Correr el circuito con Qiskit
 
 Las mismas tres operaciones (preparar, entrelazar, medir) como programa Qiskit independiente.
-Ejecutable de punta a punta en [`examples/quards_circuit.ipynb`](examples/quards_circuit.ipynb) (o
-[`examples/quards_circuit.py`](examples/quards_circuit.py)):
+Ejecutable de punta a punta en [`examples/qards_circuit.ipynb`](examples/qards_circuit.ipynb) (o
+[`examples/qards_circuit.py`](examples/qards_circuit.py)):
 
 ```python
 import math
@@ -99,7 +136,7 @@ Dependencias fijadas: [`examples/requirements.txt`](examples/requirements.txt)
 
 ## Motores
 
-El colapso pasa por un puerto (`front/quards/services/quantum.js`) con tres adaptadores:
+El colapso pasa por un puerto (`front/qards/services/quantum.js`) con tres adaptadores:
 
 | Motor | Cuándo | Probabilidades | Medición | Estado |
 | :-- | :-- | :-- | :-- | :-- |
@@ -118,12 +155,12 @@ index.html  main.js  main.css   entry (raíz) — monta el juego en #root
 back/                           motor puro + capa cuántica (sin reglas ni azar de colapso)
   estado.js                     mazo, cartas, grupos/circuitos, createGame, checkState
   quantum/{util,referencia,qiskit}.js
-front/quards/                   la app
+front/qards/                   la app
   services/                     la única capa que la UI conoce: engine, quantum (puerto), rules, ai, ionq
   ui/                           DOM, carta, animación de colapso, fondo, audio, debug
 examples/                       notebook Qiskit ejecutable + requirements fijados
 docs/                           toda la documentación
-assets/                         demo.gif
+assets/                         notas para grabar el demo (ver assets/README.md; sin GIF)
 utils/zip.js                    zip del repo entero (sin dependencias)
 ```
 
@@ -153,4 +190,4 @@ Docs: [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) (implementación canónica) ·
 
 MIT — ver [LICENSE](LICENSE).
 
-This effort is supported via compute credits from Qollab and IonQ.
+This effort is supported by Qollab & IonQ

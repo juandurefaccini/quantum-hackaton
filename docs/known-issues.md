@@ -1,4 +1,4 @@
-# Quards — Problemas conocidos
+# Qards — Problemas conocidos
 
 Estado de los problemas y la deuda técnica. Lo verificado contra el código; el estado de cada motor,
 en [`engines.md`](engines.md).
@@ -13,21 +13,21 @@ Problemas detectados en las revisiones, ya corregidos:
 
 | Problema | Fix | Dónde |
 | :-- | :-- | :-- |
-| Al medir, solo se veía `Midiendo con referencia…`; no se narraba el resultado | El panel **Info** ahora muestra qué cara salió, con qué probabilidad y si fue válida/inválida, para el jugador **y** para la IA | `front/quards/ui/render.js` (`describeResult`) |
-| La narración duraba ~0.7 s: la jugada de la IA la pisaba enseguida y casi no se leía | El panel Info muestra las **últimas 3** líneas (y cada una va también al panel Debug) | `front/quards/ui/render.js` (`recent`, `pushEvent`) |
-| "Nueva partida" no limpiaba el Info: seguía mostrando la jugada anterior | Se reinicia el historial de narración al empezar una partida | `front/quards/ui/render.js` |
-| El checkbox de Debug no reflejaba el estado real y arrancaba tildado | El panel arranca **apagado** (no se persiste) y el checkbox se sincroniza en cada render | `front/quards/ui/debug.js`, `ui/render.js` |
-| Un comodín en el descarte se veía como ★ negra, sin el color elegido | El descarte pinta el comodín con el **color vigente** (`activeColor`). *Lógica verificada; falta confirmación visual.* | `front/quards/ui/render.js` |
-| El panel **Debug** tapaba parte de la mano | El panel arranca **colapsado** (solo la barra) y se expande con el botón o ante un error | `front/quards/ui/debug.js` |
-| `dev.html` con CSS roto (`../main.css` → `front/main.css` inexistente, **404**) | La hoja apunta a la raíz del repo (`../../main.css`). Verificado por HTTP. | `front/quards/dev.html` |
+| Al medir, solo se veía `Midiendo con referencia…`; no se narraba el resultado | El panel **Info** ahora muestra qué cara salió, con qué probabilidad y si fue válida/inválida, para el jugador **y** para la IA | `front/qards/ui/render.js` (`describeResult`) |
+| La narración duraba ~0.7 s: la jugada de la IA la pisaba enseguida y casi no se leía | El panel Info muestra las **últimas 3** líneas (y cada una va también al panel Debug) | `front/qards/ui/render.js` (`recent`, `pushEvent`) |
+| "Nueva partida" no limpiaba el Info: seguía mostrando la jugada anterior | Se reinicia el historial de narración al empezar una partida | `front/qards/ui/render.js` |
+| El checkbox de Debug no reflejaba el estado real y arrancaba tildado | El panel arranca **apagado** (no se persiste) y el checkbox se sincroniza en cada render | `front/qards/ui/debug.js`, `ui/render.js` |
+| Un comodín en el descarte se veía como ★ negra, sin el color elegido | El descarte pinta el comodín con el **color vigente** (`activeColor`). *Lógica verificada; falta confirmación visual.* | `front/qards/ui/render.js` |
+| El panel **Debug** tapaba parte de la mano | El panel arranca **colapsado** (solo la barra) y se expande con el botón o ante un error | `front/qards/ui/debug.js` |
+| `dev.html` con CSS roto (`../main.css` → `front/main.css` inexistente, **404**) | La hoja apunta a la raíz del repo (`../../main.css`). Verificado por HTTP. | `front/qards/dev.html` |
 
 ## Abiertos (deuda técnica)
 
 | Tema | Detalle | Ubicación |
 | :-- | :-- | :-- |
-| **`ui/circuit.js` huérfano** | Nadie lo importa (el tooltip de circuito se removió). Código muerto. | `front/quards/ui/circuit.js` |
+| **`ui/circuit.js` huérfano** | Nadie lo importa (el tooltip de circuito se removió). Código muerto. | `front/qards/ui/circuit.js` |
 | **`utils/render.js` y `utils/rules.js`** | Copias viejas y **rotas**: importan rutas que no existen (`../services/`, `./engine.js`). No son la app real. | `utils/` |
-| **Acceso directo de Windows** | `front - Acceso directo.lnk`: basura sin valor. | `front/quards/` |
+| **Acceso directo de Windows** | `front - Acceso directo.lnk`: basura sin valor. | `front/qards/` |
 | **Sin picker de color para comodines** | El color se elige **automáticamente** (el más frecuente de tu mano). | `services/rules.js` (`chooseWildColor`) |
 | **IA "difícil" no es expectimax** | Prueba puertas + mayor probabilidad; no estima la mano rival. | `services/ai.js` |
 | **`turn.direction` sin uso** | Existe en el estado, pero las reglas 2p no lo usan. | `back/estado.js` |
@@ -44,7 +44,31 @@ Problemas detectados en las revisiones, ya corregidos:
 
 ## Accesibilidad
 
-Fortalezas actuales: alto contraste (texto claro `#f4ede0` sobre fondo oscuro), tipografía legible
-(Chakra Petch + monoespaciada para datos), y respeto por `prefers-reduced-motion` (se apagan las
-animaciones de reparto/colapso/FLIP). Pendiente: revisar el contraste de los gradientes de carta más
-claros y etiquetas ARIA de los controles de arrastre.
+Revisión de contraste y tamaño (2026-10, sobre `main.css`). Ratios WCAG estimados sobre el fondo
+oscuro del juego (`#0b0a09` / `rgba(0,0,0,…)`).
+
+**Fortalezas**
+
+- Texto principal claro `#f4ede0` sobre oscuro: ~13:1. Ámbar `--gold #e6b23a`: ~10.8:1. Muted
+  `#b9ac97`: ~9.4:1. Todos por encima de AA (4.5:1).
+- El texto de ayuda del panel **Info** (ámbar) y el turno (`Turno…` en ámbar) son legibles.
+- El juego respeta `prefers-reduced-motion` (apaga reparto, colapso y FLIP).
+- Los controles son `<button>`/`<select>` reales (foco de teclado y `:focus-visible` nativos).
+
+**Corregido (simple y seguro)**
+
+| Hallazgo | Antes | Después |
+| :-- | :-- | :-- |
+| `count-pill` (n.º de cartas de la IA): teal `#22b3a0` sobre tinte teal 12 % daba ~**4.1:1**, por debajo de AA para texto de 12 px | `color: var(--teal)` | Teal claro `#7fe3d5` → ~**6.9:1** |
+| Etiquetas de 10 px (`Info`, `⚛ entrelazadas`) | 10 px | 11 px |
+| Etiqueta de los pilares `Mazo`/`Descarte` | 11 px | 12 px |
+
+**Pendiente (no bloqueante)**
+
+- Tamaño mínimo de tipografía: quedan etiquetas de **11 px** (`Info`, `⚛ entrelazadas`, `.spy-mark`,
+  `.debug`) y la leyenda del colapso. Recomendado ≥12 px para texto de UI; se dejó 11 px por
+  espacio. No afecta la jugabilidad.
+- Los iconos son emoji (`👁`, `⚛`, `⊘`): dependen de la fuente del sistema; sin etiqueta de texto
+  propia, un lector de pantalla puede no anunciarlos. Las acciones principales sí tienen texto.
+- Los controles de arrastre (cartas) tienen `title` pero no `aria-label` explícito.
+- Falta auditar contraste de los **gradientes** de las caras de carta (color de fondo variable).

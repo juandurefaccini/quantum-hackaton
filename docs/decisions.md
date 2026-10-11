@@ -1,4 +1,4 @@
-# Quards — Registro de decisiones
+# Qards — Registro de decisiones
 
 Decisiones de diseño, con el **motivo** y **dónde vive cada una en el código**. Cuando una decisión
 contradice a `idea.md`, gana la de acá. Ver también [`ARCHITECTURE.md`](ARCHITECTURE.md).
@@ -37,7 +37,7 @@ contradice a `idea.md`, gana la de acá. Ver también [`ARCHITECTURE.md`](ARCHIT
 | Puertas X/Z/H/CNOT **no son cartas**: se otorgan por turno y son **preparación libre** | Modelo "cartas = qubits"; las operaciones son gratis y no cierran el turno | `rules.js:PUERTAS` · `estado.js:otorgarPuerta` |
 | Cadencia de puerta: **1 cada 2 turnos propios**, tope 3 en mano | Balance | `rules.js:PUERTAS = { cadaTurnos: 2, maximo: 3 }` |
 | Jugada **inválida**: la carta queda colapsada en la mano + robás 1 | Castigo que hace crecer la mano | `rules.js:resolvePlay` |
-| Efectos UNO clásicos 2p: skip/reverse = pierde turno, +2, comodín, +4 | Fidelidad al UNO | `rules.js:resolvePlay` |
+| Efectos clásicos 2p: skip/reverse = pierde turno, +2, comodín, +4 | Fidelidad al clásico | `rules.js:resolvePlay` |
 | Comodín: color **automático** (el más frecuente de tu mano) | No hay picker todavía | `rules.js:chooseWildColor` |
 | **Victoria = mano vacía** | Las puertas están aparte, no cuentan | `rules.js:resolvePlay` |
 | **Espía (ojo)**: cargas {inicial 1, cada 2 turnos, tope 2}; revela un estado al azar | Mecánica de información oculta (no cuántica) | `rules.js:ESPIAR` · `spyCard` |
@@ -49,9 +49,9 @@ contradice a `idea.md`, gana la de acá. Ver también [`ARCHITECTURE.md`](ARCHIT
 | :-- | :-- | :-- |
 | **Imports estáticos** + import map (dev) para `qiskit` | Qollab no empaqueta lo referido solo por `import()` dinámico | `index.html` · `services/quantum.js` |
 | El repo **importa `../../../back/`**; el build del zip lo aplana a `../back/` | No vendorizar el motor en el front, pero Qollab necesita estructura plana | `services/*.js` · `build.mjs` |
-| La **carta** vive en `front/quards/ui/qard.js` (fuente única, escalable) | El zip se empaqueta plano; `cards/qard.js` la re-exporta | `ui/qard.js` · `cards/qard.js` |
+| La **carta** vive en `front/qards/ui/qard.js` (fuente única, escalable) | El zip se empaqueta plano; `cards/qard.js` la re-exporta | `ui/qard.js` · `cards/qard.js` |
 | **Entry raíz** ejecutable (`index.html` + `main.js`) | El repo debe poder levantarse desde la raíz | `index.html` · `main.js` |
-| `main.js` termina en `await new Promise(() => {})` | Mantener viva la sesión: IonQ solo es alcanzable mientras corre | `front/quards/main.js` |
+| `main.js` termina en `await new Promise(() => {})` | Mantener viva la sesión: IonQ solo es alcanzable mientras corre | `front/qards/main.js` |
 | Panel de **debug oculto por defecto**, se destapa ante un error real | Nunca una pantalla negra silenciosa | `ui/debug.js` |
 
 ## UX (2026-10)

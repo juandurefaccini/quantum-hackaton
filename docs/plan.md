@@ -1,4 +1,4 @@
-# Quards — Estado y plan
+# Qards — Estado y plan
 
 Estado actual del proyecto y roadmap. Especificación en [`idea.md`](idea.md), decisiones en
 [`decisions.md`](decisions.md) y estructura/implementación en [`ARCHITECTURE.md`](ARCHITECTURE.md)
@@ -6,7 +6,7 @@ Estado actual del proyecto y roadmap. Especificación en [`idea.md`](idea.md), d
 
 ## Estado en una línea
 
-**MVP funcional y jugable.** Motor, capa cuántica, reglas, IA, UI y tests (**7/7**) están listos;
+**MVP funcional y jugable.** Motor, capa cuántica, reglas, IA, UI y tests (**15/15**) están listos;
 lo que falta es **producto** (picker de color, IA difícil, validar Qollab, multijugador).
 
 ## Hecho
@@ -16,18 +16,18 @@ lo que falta es **producto** (picker de color, IA difícil, validar Qollab, mult
 - ✅ **Capa cuántica**: puerto (`quantum.js`) + referencia local + adaptador Qiskit + adaptador IonQ
   (vía proxy), con medición parcial condicionada y fallback a la referencia.
 - ✅ **Reglas y turnos** (`services/rules.js`): jugabilidad, `play → medir → resolver`, preparación
-  libre con cadencia/tope de puertas, efectos UNO, espía, victoria por mano vacía.
+  libre con cadencia/tope de puertas, efectos clásicos, espía, victoria por mano vacía.
 - ✅ **IA** (`services/ai.js`): fácil / media / difícil con `bestPrep`.
 - ✅ **UI** (`ui/render.js`): tablero, drag&drop, puertas, ojo, panel Info, animaciones (reparto,
   vuelo, colapso, FLIP), glitch, fondo WebGL, audio, debug.
 - ✅ **Tests** (`npm test`): 7 tests verdes — coherencia, puertas, medición, y partidas IA vs IA
   completas en los 3 niveles.
 - ✅ **Runtime y packaging**: entry raíz ejecutable, dev-server con proxy IonQ, `build.mjs`
-  (`front/quards.zip` para Qollab), `utils/zip.js` (zip del repo).
+  (`front/qards.zip` para Qollab), `utils/zip.js` (zip del repo).
 - ✅ **Documentación**: `README.md`/`README.es.md`, `ARCHITECTURE.md`, `idea.md`, `decisions.md`,
   `plan.md`, `AGENTS.md`, `gates.md`, `quantum-concepts.md`, `determinism.md`, `engines.md`,
   `known-issues.md`, `roadmap.md`, `hackathon-brief.md`.
-- ✅ **Ejemplo Qiskit**: `examples/quards_circuit.ipynb` (+ `.py`, `requirements.txt` fijados) —
+- ✅ **Ejemplo Qiskit**: `examples/qards_circuit.ipynb` (+ `.py`, `requirements.txt` fijados) —
   ejecutado con `qiskit 2.5.2` usando `Statevector` (sin Aer, corre también en Pyodide).
 
 ## Pendiente

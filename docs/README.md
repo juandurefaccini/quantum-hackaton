@@ -1,4 +1,4 @@
-# Quards — UNO cuántico
+# Qards — juego de cartas cuántico
 
 Juego de cartas donde cada carta es un **qubit** con dos caras posibles (una por cada estado
 `|0⟩` y `|1⟩`). Gana quien se queda sin cartas antes que el rival: **persona vs. IA**.
@@ -10,7 +10,7 @@ cuántico** (simulador local, Qiskit o IonQ).
 ## Arranque rápido
 
 ```bash
-node front/quards/dev-server.mjs        # 1. levantá el server (puerto 8000)
+node front/qards/dev-server.mjs        # 1. levantá el server (puerto 8000)
 ```
 
 2. Abrí `http://localhost:8000`.
@@ -18,7 +18,7 @@ node front/quards/dev-server.mjs        # 1. levantá el server (puerto 8000)
 
 El motor por defecto es el **simulador local**, así que no necesita backend ni claves.
 
-**Verificación:** el tablero carga · podés arrastrar una carta al descarte · `cd front/quards && npm test` pasa (7/7).
+**Verificación:** el tablero carga · podés arrastrar una carta al descarte · `cd front/qards && npm test` pasa (15/15).
 
 ## ¿Qué leer según lo que buscás?
 
@@ -47,13 +47,13 @@ El motor por defecto es el **simulador local**, así que no necesita backend ni 
 ## Cómo levantar la app
 
 El **punto de entrada está en la raíz**: `index.html` + `main.js` montan la app (que vive en
-`front/quards/`) dentro de `#root`. Se sirve con un **dev-server** incluido que, además de servir
+`front/qards/`) dentro de `#root`. Se sirve con un **dev-server** incluido que, además de servir
 el repo, **proxya IonQ** (para que el browser no llame directo a la API ni exponga la key).
 
 Desde la raíz del repo:
 
 ```bash
-node front/quards/dev-server.mjs
+node front/qards/dev-server.mjs
 ```
 
 Luego abrir:
@@ -67,19 +67,19 @@ http://localhost:8000
 El server también acepta:
 
 ```bash
-node front/quards/dev-server.mjs --port 8000          # puerto (default 8000)
-node front/quards/dev-server.mjs --env /ruta/a/.env   # archivo .env con la key de IonQ
-node front/quards/dev-server.mjs --key TU_IONQ_KEY    # key directa
+node front/qards/dev-server.mjs --port 8000          # puerto (default 8000)
+node front/qards/dev-server.mjs --env /ruta/a/.env   # archivo .env con la key de IonQ
+node front/qards/dev-server.mjs --key TU_IONQ_KEY    # key directa
 ```
 
-> Alternativa: `cd front/quards && npm run dev`.
+> Alternativa: `cd front/qards && npm run dev`.
 
 > El dev-server sirve **todo el repo** (no solo la app) para que `services/` pueda importar
 > `../../../back/` y para poder abrir los prototipos de cartas con el mismo server.
 
 ### Motor cuántico
 
-El puerto cuántico (`front/quards/services/quantum.js`) elige el adaptador según el entorno:
+El puerto cuántico (`front/qards/services/quantum.js`) elige el adaptador según el entorno:
 
 | Motor | Cuándo | Qué usa |
 | :-- | :-- | :-- |
@@ -94,13 +94,13 @@ aporta la **medición** (el colapso real).
 
 Para usar el simulador de IonQ en local:
 
-1. Copiá `front/quards/.env.example` a `front/quards/.env` y completá `IONQ_API_KEY`.
+1. Copiá `front/qards/.env.example` a `front/qards/.env` y completá `IONQ_API_KEY`.
    (También podés pasar la key con `--key` o `--env <ruta>`.)
 2. Levantá el dev-server.
 3. Abrí el juego con `?engine=ionq`:
 
    ```
-   http://localhost:8000/front/quards/dev.html?engine=ionq
+   http://localhost:8000/front/qards/dev.html?engine=ionq
    ```
 
 La key **nunca va al browser ni al repo**: `.env` está en `.gitignore` y el dev-server la usa
@@ -110,7 +110,7 @@ server-side.
 
 Para correr con el backend **Qiskit** en Qollab:
 
-1. Empaquetá la app plana: `node front/quards/build.mjs` → `front/quards.zip`.
+1. Empaquetá la app plana: `node front/qards/build.mjs` → `front/qards.zip`.
 2. Subí ese zip como proyecto **JS/Qiskit**, elegí el backend en *Select QPU* y **Run**.
 
 Ahí `backend` existe, así que el puerto cuántico usa Qiskit (`back/quantum/qiskit.js`).
@@ -142,21 +142,21 @@ node utils/zip.js --out dist/app.zip   # elegir la ruta de salida
   los archivos `.DS_Store`, `*.log` y `*.zip`.
 - Salida por defecto: `quantum-hackaton.zip` en la raíz del repo.
 
-> Para el bundle de **solo la app** en formato plano de Qollab (`front/quards.zip`) usá
-> `node front/quards/build.mjs`.
+> Para el bundle de **solo la app** en formato plano de Qollab (`front/qards.zip`) usá
+> `node front/qards/build.mjs`.
 
 ## Tests
 
 Desde la raíz del repo:
 
 ```bash
-node --import ./front/quards/tests/qiskit-hooks.mjs --test front/quards/tests/services.test.js
+node --import ./front/qards/tests/qiskit-hooks.mjs --test front/qards/tests/services.test.js
 ```
 
-O, desde `front/quards/`:
+O, desde `front/qards/`:
 
 ```bash
-cd front/quards
+cd front/qards
 npm test
 ```
 
@@ -171,7 +171,7 @@ tests corren con el motor de referencia local, así que el stub (que lanza) nunc
 .
 ├── index.html          ENTRY del repo (raíz) · monta el juego en #root
 ├── main.css            estilos del juego (raíz)
-├── main.js             ENTRY del repo (raíz) · importa front/quards/main.js
+├── main.js             ENTRY del repo (raíz) · importa front/qards/main.js
 ├── README.md           portada (inglés) · README.es.md (español)
 ├── docs/               toda la documentación
 │   ├── README.md           este archivo (guía del proyecto)
@@ -182,12 +182,12 @@ tests corren con el motor de referencia local, así que el stub (que lanza) nunc
 │   ├── mejoras/            propuestas de mejora cuántica (un doc por idea)
 │   └── AGENTS.md           contexto para agentes de IA
 ├── examples/           notebook Qiskit ejecutable + requirements
-├── assets/             demo.gif (placeholder)
+├── assets/             notas para grabar el demo (sin GIF)
 ├── back/               motor del juego (estado.js) + capa cuántica (quantum/)
 │   ├── estado.js
 │   └── quantum/        util.js · qiskit.js · referencia.js
 ├── front/
-│   └── quards/         APP PRINCIPAL (dev-server, tests, ui, services)
+│   └── qards/         APP PRINCIPAL (dev-server, tests, ui, services)
 ├── cards/              prototipos de cartas (index · card_final)
 └── utils/zip.js        empaquetador del proyecto (zip sin dependencias)
 ```

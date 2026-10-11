@@ -1,6 +1,6 @@
-# Quards — Concepto y especificación funcional
+# Qards — Concepto y especificación funcional
 
-**Quards** es un **UNO cuántico**: un juego de cartas donde cada carta es un qubit con dos caras
+**Qards** es un **juego de cartas cuántico**: cada carta es un qubit con dos caras
 posibles, una por cada estado `|0⟩` y `|1⟩`. Es 1v1 (**persona vs. IA**). Gana quien se queda
 **sin cartas en la mano**.
 
@@ -12,7 +12,7 @@ posibles, una por cada estado `|0⟩` y `|1⟩`. Es 1v1 (**persona vs. IA**). Ga
 
 ## 1. Idea
 
-En UNO clásico, una carta tiene un color y un símbolo, y la jugás si matchea el descarte. Acá una
+En un juego de descarte clásico, una carta tiene un color y un símbolo, y la jugás si matchea el descarte. Acá una
 carta puede estar en **superposición**: sus dos caras son dos cartas posibles a la vez. Recién al
 **jugarla se mide** y sale una de las dos. El jugador apuesta: una carta con 50 % de ser jugable
 *puede* servir, pero si sale mal paga una penalización.
@@ -24,7 +24,7 @@ un **CNOT** y el colapso lo decide un **motor cuántico** (simulador local, IonQ
 
 | Pieza | Qué es | Equivalente cuántico |
 | :-- | :-- | :-- |
-| **Carta clásica** | Carta de UNO común: color + número o acción (skip/reverse/+2) + comodines (`wild`, `wild4`). Una sola cara. | Estado base |
+| **Carta clásica** | Carta clásica común: color + número o acción (skip/reverse/+2) + comodines (`wild`, `wild4`). Una sola cara. | Estado base |
 | **Carta cuántica** | Carta con **dos caras posibles** (p. ej. Rojo 5 / Azul 2), una por estado `\|0⟩` y `\|1⟩`. Su estado solo lo conoce su dueño. | Qubit en superposición |
 | **Grupo entrelazado** | Dos o más cartas cuánticas unidas por un **CNOT**: sus resultados quedan correlacionados. | Par de Bell / GHZ |
 | **Puerta** | Operación cuántica: **X** (intercambia probabilidades), **H** (las convierte en fase), **Z** (invierte la fase), **CNOT** (entrelaza dos cartas). **No es una carta.** | Compuertas |
@@ -53,7 +53,7 @@ un **CNOT** y el colapso lo decide un **motor cuántico** (simulador local, IonQ
   **tope de 3** en la mano.
 - Se acumulan y se aplican **gratis** (no cierran el turno). La carta se mide **recién al jugarla**.
 
-## 5. Efectos de carta (UNO clásico, 2 jugadores)
+## 5. Efectos de carta (clásicos, 2 jugadores)
 
 | Carta | Efecto |
 | :-- | :-- |

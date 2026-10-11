@@ -1,7 +1,7 @@
-# Quards — Motores cuánticos
+# Qards — Motores cuánticos
 
 El colapso de las cartas es lo único que necesita un motor cuántico. Todo pasa por **un puerto** con
-tres adaptadores, elegidos por entorno: `front/quards/services/quantum.js`.
+tres adaptadores, elegidos por entorno: `front/qards/services/quantum.js`.
 
 ## El puerto
 
@@ -20,7 +20,7 @@ Selección del motor:
 ```js
 const hasQollab = typeof backend !== 'undefined';                    // Qollab define `backend`
 let engine = hasQollab ? 'qiskit'
-           : (configuredEngine() === 'ionq' ? 'ionq' : 'referencia'); // ?engine=ionq o QUARDS_ENGINE
+           : (configuredEngine() === 'ionq' ? 'ionq' : 'referencia'); // ?engine=ionq o QARDS_ENGINE
 ```
 
 Dos reglas de oro:
@@ -60,6 +60,11 @@ map / hook), así que **solo corre en Qollab**.
 - **Ojo con el bit order:** Qiskit escribe el qubit 0 a la **derecha** (`'10'` = qubit1 en 1, qubit0
   en 0). El adaptador lo tiene en cuenta.
 - Con qubits ya medidos en el grupo, pide más shots y **post-selecciona** los resultados compatibles.
+- **Un job por ejecución en IonQ:** los backends de IonQ admiten **un solo** `backend.run` por *Run*;
+  los simuladores locales, los que hagan falta. El puerto lo maneja: el **primer** colapso se mide con
+  el backend real y, si el runtime rechaza el segundo job, el resto de la partida se mide con el
+  simulador de referencia (el vector de estado ya da la distribución exacta, el colapso es idéntico en
+  ley). Ver `front/qards/services/quantum.js` (`remoteJobsExhausted`).
 - **No verificado acá:** requiere el entorno Qollab. Queda como **laguna**.
 
 ## ¿Qué falta para correr en IonQ real?
@@ -69,7 +74,7 @@ Hay **dos caminos**, y conviene no mezclarlos:
 | Camino | Cómo | Qué falta |
 | :-- | :-- | :-- |
 | **A. App local + IonQ (REST)** | `?engine=ionq` → `services/ionq.js` → proxy del dev-server | Una `IONQ_API_KEY`; verificar un run; opcional: exponer el `target` (simulator/QPU) en la UI |
-| **B. Qollab + IonQ (Qiskit)** | Subir el zip a Qollab, motor `qiskit`, elegir backend en *Select QPU* | Ejecutar un run real en Qollab y validar el bit order/histograma |
+| **B. Qollab + IonQ (Qiskit)** | Generar el bundle (`node qollab/build.mjs`), subir `qollab/app/` a Qollab, motor `qiskit`, elegir backend en *Select QPU* | Ejecutar un run real en Qollab y validar el bit order/histograma (ver `qollab/README-SUBIDA.md`) |
 
 En ambos casos, IonQ aporta **la medición** (el colapso). Las probabilidades siguen siendo exactas y
 locales.

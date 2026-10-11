@@ -5,9 +5,9 @@ Doc técnica completa: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## TL;DR
 
-- **Qué:** Quards, un UNO cuántico 1v1 (humano vs IA). JS puro, sin dependencias.
-- **Correr:** `node front/quards/dev-server.mjs` → `http://localhost:8000`.
-- **Verificar:** `cd front/quards && npm test` (7/7). No hay lint ni typecheck.
+- **Qué:** Qards, un juego de cartas cuántico 1v1 (humano vs IA). JS puro, sin dependencias.
+- **Correr:** `node front/qards/dev-server.mjs` → `http://localhost:8000`.
+- **Verificar:** `cd front/qards && npm test` (15/15). No hay lint ni typecheck.
 - **Regla de oro:** toda mutación de `state` debe dejar `checkState(state)` vacío.
 - **No rompas:** imports estáticos (Qollab) y la UI solo importa `services/*`.
 
@@ -15,7 +15,7 @@ Detalle: [Arquitectura](#arquitectura-en-una-pasada) · [Invariantes](#invariant
 
 ## Qué es
 
-**Quards**, un "UNO cuántico" 1v1 (humano vs IA). Cada carta es un qubit con dos caras posibles
+**Qards**, un "juego de cartas cuántico" 1v1 (humano vs IA). Cada carta es un qubit con dos caras posibles
 (`|0⟩`/`|1⟩`); se mide al jugarla. Gana quien se queda **sin cartas en la mano**. JS puro (ES
 modules), **sin frameworks, sin bundler, sin dependencias de runtime**. Todo el código y la
 documentación están en **español**.
@@ -23,9 +23,9 @@ documentación están en **español**.
 ## Comandos
 
 ```bash
-node front/quards/dev-server.mjs          # servidor local (http://localhost:8000) + proxy IonQ
-cd front/quards && npm test               # tests (node --test)
-node front/quards/build.mjs               # -> front/quards.zip (para Qollab)
+node front/qards/dev-server.mjs          # servidor local (http://localhost:8000) + proxy IonQ
+cd front/qards && npm test               # tests (node --test)
+node front/qards/build.mjs               # -> front/qards.zip (para Qollab)
 node utils/zip.js                         # -> quantum-hackaton.zip (repo entero)
 ```
 
@@ -37,10 +37,10 @@ No hay lint ni typecheck ni `npm install`. La verificación es **correr los test
   `checkState`. **No tiene reglas ni mide.**
 - `back/quantum/` — `util.js` (helpers puros), `referencia.js` (simulador local), `qiskit.js`
   (solo Qollab).
-- `front/quards/services/` — **la única capa que la UI conoce**:
+- `front/qards/services/` — **la única capa que la UI conoce**:
   `engine.js` (fachada del back), `quantum.js` (**puerto cuántico**), `rules.js` (reglas/turnos),
   `ai.js`, `ionq.js`.
-- `front/quards/ui/` — `render.js` (la app), `qard.js` (carta), `collapse.js` (animación de
+- `front/qards/ui/` — `render.js` (la app), `qard.js` (carta), `collapse.js` (animación de
   medición), `entangle.js`, `background.js`, `audio.js`, `debug.js`.
 - `index.html` + `main.js` (raíz) — entry ejecutable que monta la app en `#root`.
 
@@ -63,7 +63,7 @@ No hay lint ni typecheck ni `npm install`. La verificación es **correr los test
 ## Motor cuántico (puerto con adaptadores)
 
 `services/quantum.js` elige el motor: `qiskit` si `typeof backend !== 'undefined'` (Qollab), `ionq`
-si `?engine=ionq` / `globalThis.QUARDS_ENGINE`, si no `referencia`. Las **probabilidades** siempre
+si `?engine=ionq` / `globalThis.QARDS_ENGINE`, si no `referencia`. Las **probabilidades** siempre
 son exactas; IonQ solo aporta la **medición**; si el motor remoto falla, **cae a la referencia**.
 
 ## Decisiones clave (ver [`decisions.md`](decisions.md))
@@ -79,13 +79,13 @@ son exactas; IonQ solo aporta la **medición**; si el motor remoto falla, **cae 
 
 - `ui/circuit.js` está **huérfano** (nadie lo importa).
 - `utils/render.js` y `utils/rules.js` son **copias viejas y rotas** (NO son la app real; la app
-  está en `front/quards/`).
+  está en `front/qards/`).
 - Los comodines eligen color automáticamente (no hay picker).
 - IonQ tarda ~3.6 s por medición (simulador); hay timeouts y fallback.
 
 ## Convenciones
 
-- **Commits** en español, conventional commits con scope (`feat(quards): ...`, `docs: ...`). Sin
+- **Commits** en español, conventional commits con scope (`feat(qards): ...`, `docs: ...`). Sin
   atribución de IA.
 - Separar cambios en **work units atómicas** (una idea por commit).
 - Documentación en español; los identificadores del código también.
@@ -105,8 +105,8 @@ son exactas; IonQ solo aporta la **medición**; si el motor remoto falla, **cae 
 
 ## Checklist antes de cerrar un cambio
 
-- [ ] `cd front/quards && npm test` pasa (7/7).
+- [ ] `cd front/qards && npm test` pasa (15/15).
 - [ ] El estado queda coherente (`checkState` vacío) tras cada acción.
 - [ ] No agregué imports dinámicos (Qollab no los empaqueta).
 - [ ] La UI no importa `back/quantum/*` ni `ionq.js`.
-- [ ] Docs e identificadores en español; commits con scope (`feat(quards): …`).
+- [ ] Docs e identificadores en español; commits con scope (`feat(qards): …`).

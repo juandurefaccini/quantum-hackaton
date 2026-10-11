@@ -1,10 +1,10 @@
-# Quards — Arquitectura técnica
+# Qards — Arquitectura técnica
 
 Documento técnico canónico del proyecto. Describe **cómo está construido y cómo funciona hoy**,
 verificado contra el código. Los documentos [`idea.md`](idea.md), [`decisions.md`](decisions.md) y
 [`plan.md`](plan.md) cubren producto, decisiones y estado; este cubre la implementación.
 
-> Quards es un **UNO cuántico** 1v1 (humano vs IA). Cada carta es un qubit con dos resultados
+> Qards es un **juego de cartas cuántico** 1v1 (humano vs IA). Cada carta es un qubit con dos resultados
 > posibles (uno por cada cara `|0⟩` y `|1⟩`). Gana quien se queda **sin cartas en la mano**.
 > JS puro (ES modules), **sin frameworks, sin bundler, sin dependencias de runtime**.
 
@@ -65,24 +65,24 @@ Tres ideas estructuran todo el código:
 Requisito: **Node.js 18+** (el dev-server usa `fetch` global y `node:http`). No hay `npm install`.
 
 ```bash
-node front/quards/dev-server.mjs        # sirve el repo + proxya IonQ
+node front/qards/dev-server.mjs        # sirve el repo + proxya IonQ
 # abrir http://localhost:8000
 ```
 
-`/` redirige a `/index.html` (entry raíz), que monta la app de `front/quards/` en `#root`.
+`/` redirige a `/index.html` (entry raíz), que monta la app de `front/qards/` en `#root`.
 
 **Los tres motores cuánticos** (elegidos en `services/quantum.js`, ver §5.1):
 
 | Motor | Cuándo se usa | Probabilidades | Medición (colapso) |
 | :-- | :-- | :-- | :-- |
 | `referencia` | local, **por defecto** | simulador JS exacto | muestreo local |
-| `ionq` | local con `?engine=ionq` o `globalThis.QUARDS_ENGINE='ionq'` | igual (exacta, local) | API IonQ vía proxy del dev-server |
+| `ionq` | local con `?engine=ionq` o `globalThis.QARDS_ENGINE='ionq'` | igual (exacta, local) | API IonQ vía proxy del dev-server |
 | `qiskit` | dentro de Qollab (`typeof backend !== 'undefined'`) | Qiskit Statevector | `backend.run` |
 
 Las **probabilidades siempre son exactas** (Statevector o simulador de referencia). IonQ solo aporta
 la **medición** (el colapso real). Si el motor remoto falla, se cae al simulador de referencia.
 
-**Qollab:** se sube `front/quards.zip` (ver §9). Ahí `backend` existe y el puerto usa Qiskit.
+**Qollab:** se sube `front/qards.zip` (ver §9). Ahí `backend` existe y el puerto usa Qiskit.
 
 ---
 
@@ -91,19 +91,19 @@ la **medición** (el colapso real). Si el motor remoto falla, se cae al simulado
 ```
 .
 ├── index.html              entry HTML del repo · import map (qiskit → stub) · monta #root
-├── main.js                 entry JS del repo · importa front/quards/main.js
+├── main.js                 entry JS del repo · importa front/qards/main.js
 ├── main.css                estilos de la app (raíz)
 ├── README.md · README.es.md   portada del repo (inglés / español)
 ├── docs/                   toda la documentación (README · ARCHITECTURE · idea · decisions · plan · gates · quantum-concepts · determinism · engines · known-issues · roadmap · hackathon-brief · AGENTS)
 ├── examples/               notebook Qiskit ejecutable + requirements.txt
-├── assets/                 demo.gif (placeholder)
+├── assets/                 notas para grabar el demo (sin GIF)
 ├── back/                   MOTOR + capa cuántica (se importa desde el front)
 │   ├── estado.js           motor puro: mazo, grupos/circuitos, createGame, checkState
 │   └── quantum/
 │       ├── util.js         helpers puros: condicionar, marginal, elegirIndice
 │       ├── referencia.js   simulador de referencia (Node / local)
 │       └── qiskit.js       adaptador Qiskit (solo Qollab)
-├── front/quards/           APP PRINCIPAL
+├── front/qards/           APP PRINCIPAL
 │   ├── index.html          fragmento que espera #root (base Qollab)
 │   ├── dev.html            variante local standalone (trae su propio import map)
 │   ├── main.js             boot: espera #root, monta, mantiene la sesión viva
@@ -125,7 +125,7 @@ la **medición** (el colapso real). Si el motor remoto falla, se cae al simulado
 │   ├── quantum/qiskit-stub.js  stub de qiskit/qiskit.quantum_info (import map en dev)
 │   ├── tests/              npm test (hook de resolución de qiskit; fuera del zip)
 │   ├── dev-server.mjs      server local + proxy IonQ (fuera del zip)
-│   ├── build.mjs           arma front/quards.zip (app plana + back/)
+│   ├── build.mjs           arma front/qards.zip (app plana + back/)
 ├── cards/                  prototipos de la carta (index · card_final) · qard.js reexporta
 └── utils/
     ├── zip.js              empaquetador del repo (zip sin dependencias)
@@ -207,7 +207,7 @@ texto). El primer jugador arranca con `turns = 1` y ya recibe una puerta.
 
 | Campo | Valor | Qué hace |
 | :-- | :-- | :-- |
-| `porColor` | `0`×1, `1..9`×3, `skip/reverse/draw2`×3 por color | mazo base UNO (×4 colores = 148) |
+| `porColor` | `0`×1, `1..9`×3, `skip/reverse/draw2`×3 por color | mazo base clásico (×4 colores = 148) |
 | `comodines` | `wild`×4, `wild4`×4 | comodines sin color (8) |
 | `superposiciones` | `48` | cuánticas fabricadas: combinan 2 cartas base (que desaparecen) |
 | `sesgoMaximo` | `0.8` | tope del eje z → P(cara a favor) entre 10 % y 90 % |
@@ -235,14 +235,14 @@ las ops no usen qubits inexistentes, y la coherencia de fase (`pending` ⇔ `mea
 
 ## 5. Capa cuántica
 
-### 5.1 El puerto (`front/quards/services/quantum.js`)
+### 5.1 El puerto (`front/qards/services/quantum.js`)
 
 Una sola interfaz; varios adaptadores. La elección del motor:
 
 ```js
 const hasQollab = typeof backend !== 'undefined';                       // Qollab define `backend`
 let engine = hasQollab ? 'qiskit'
-           : (configuredEngine() === 'ionq' ? 'ionq' : 'referencia');   // ?engine= o globalThis.QUARDS_ENGINE
+           : (configuredEngine() === 'ionq' ? 'ionq' : 'referencia');   // ?engine= o globalThis.QARDS_ENGINE
 ```
 
 - **Probabilidades** (nunca por IonQ, son exactas):
@@ -286,7 +286,7 @@ Corre solo en Qollab (en Node `import 'qiskit'` se resuelve a un stub, ver §9).
   la distribución exacta. **Ojo con el bit order:** Qiskit escribe el qubit 0 a la **derecha**
   (`'10'` = qubit1 en 1, qubit0 en 0).
 
-### 5.5 Adaptador IonQ (`front/quards/services/ionq.js`)
+### 5.5 Adaptador IonQ (`front/qards/services/ionq.js`)
 
 Solo para pruebas locales. `toIonQCircuit` traduce `ops` a `ionq.circuit.v0` (gateset `qis`);
 `medirGrupo` crea un job (`POST /v0.3/jobs`), hace polling hasta `completed` y lee
@@ -304,7 +304,7 @@ con la proyección de los medidos (`referencia.js:64-69`).
 
 ---
 
-## 6. Reglas y turnos (`front/quards/services/rules.js`)
+## 6. Reglas y turnos (`front/qards/services/rules.js`)
 
 Todo **muta** `state` (como el motor del back). Constantes ajustables al inicio del archivo:
 
@@ -328,7 +328,7 @@ jugada, actualiza `bits`/`collapsed` del grupo y llama a `resolvePlay`:
 - **válida** (matchea o comodín): va al descarte, se aplica el efecto, y gana si la mano queda vacía.
 - **inválida**: la carta queda en la mano **colapsada** y el jugador **roba 1** (penalización).
 
-**Efectos UNO** (2 jugadores): `skip`/`reverse` = el rival pierde el turno; `draw2` = roba 2 y pierde
+**Efectos clásicos** (2 jugadores): `skip`/`reverse` = el rival pierde el turno; `draw2` = roba 2 y pierde
 el turno; `wild` = elegís color; `wild4` = elegís color + el rival roba 4 y pierde el turno. El color
 del comodín lo elige `chooseWildColor` (el más frecuente en tu mano; todavía no hay picker).
 
@@ -375,7 +375,7 @@ UI (applyGate 'cnot', control, target) ──► rules.applyGate ──► back.
 
 ---
 
-## 7. IA (`front/quards/services/ai.js`)
+## 7. IA (`front/qards/services/ai.js`)
 
 `chooseAction(state, player, level)` devuelve un descriptor que el driver aplica; puede devolver
 **preparación** (gate), y el driver repite hasta que la IA juega o roba:
@@ -389,7 +389,7 @@ La IA **solo conoce sus propias distribuciones** (información oculta).
 
 ---
 
-## 8. Interfaz (`front/quards/ui/`)
+## 8. Interfaz (`front/qards/ui/`)
 
 `render.js` es la app completa (~800 líneas): construye el DOM del tablero, maneja el input y
 orquesta el flujo de turnos (incluida la IA con pausas para que se siga la partida).
@@ -420,8 +420,8 @@ orquesta el flujo de turnos (incluida la IA con pausas para que se siga la parti
 
 ```
 index.html (raíz) ──► <script type="module" src="./main.js">
-   └─ main.js (raíz) ──► import './front/quards/main.js'
-        └─ front/quards/main.js: initDebug(); boot()
+   └─ main.js (raíz) ──► import './front/qards/main.js'
+        └─ front/qards/main.js: initDebug(); boot()
              boot(): ¿existe #root? ── no ──► reintenta (setTimeout 150 ms)
                                      └─ sí ──► mount(root)
                                                 ├─ initDebug · startBackground (WebGL) · armAudio
@@ -441,7 +441,7 @@ index.html (raíz) ──► <script type="module" src="./main.js">
 - **Por qué no hay imports dinámicos:** Qollab empaqueta solo los archivos alcanzables por imports
   **estáticos**; un `import()` dinámico resuelve contra la base `_nuxt/` de Qollab y falla. Por eso
   `services/quantum.js` importa los adaptadores de forma estática y elige en runtime.
-- **`front/quards/build.mjs`** → `front/quards.zip` para Qollab: copia la app **plana** en la raíz
+- **`front/qards/build.mjs`** → `front/qards.zip` para Qollab: copia la app **plana** en la raíz
   (`index.html`, `main.css`, `main.js`, `services/`, `ui/`, `quantum/`, `back/`) y reescribe en
   `services/` las rutas `../../../back/` → `../back/`.
 - **`utils/zip.js`** → zip del repo entero (sin dependencias: contenedor ZIP escrito con
@@ -452,8 +452,8 @@ index.html (raíz) ──► <script type="module" src="./main.js">
 ## 10. Tests
 
 ```bash
-node --import ./front/quards/tests/qiskit-hooks.mjs --test front/quards/tests/services.test.js
-# o, desde front/quards/:
+node --import ./front/qards/tests/qiskit-hooks.mjs --test front/qards/tests/services.test.js
+# o, desde front/qards/:
 npm test
 ```
 
@@ -475,13 +475,13 @@ Cobertura actual (`tests/services.test.js`, 7 tests, todos verdes):
 - **`ui/circuit.js` está huérfano:** nadie lo importa (el tooltip de circuito se removió del flujo
   actual). Es código muerto.
 - **`utils/render.js` y `utils/rules.js` son copias viejas y rotas:** importan `../services/` y
-  `./engine.js`, rutas que **no existen** en `utils/`. Versión previa al refactor a `front/quards/`.
-- **`front/quards/front - Acceso directo.lnk`** es un acceso directo de Windows sin valor.
+  `./engine.js`, rutas que **no existen** en `utils/`. Versión previa al refactor a `front/qards/`.
+- **`front/qards/front - Acceso directo.lnk`** es un acceso directo de Windows sin valor.
 - **Comodines:** el color se elige automáticamente (el más frecuente en la mano); falta el picker.
 - **IA difícil:** no es expectimax completo ni estima la mano rival (ver `plan.md`).
 - **`turn.direction`** existe en el estado pero las reglas 2p no lo usan.
 - **`state.log`** se escribe en `rules.js` (historial de texto) pero la UI actual
-  (`front/quards/ui/render.js`) **no lo muestra**: la narración nueva usa `lastEvent`, no el log (el
+  (`front/qards/ui/render.js`) **no lo muestra**: la narración nueva usa `lastEvent`, no el log (el
   viejo `utils/render.js` sí lo renderizaba).
 - **Motores remotos (`ionq`, `qiskit`):** **no verificados** en este repo (sin key ni Qollab). Ver
   [`engines.md`](engines.md).
@@ -512,8 +512,8 @@ Quién importa a quién (regla clave: **la UI nunca importa `back/quantum/*` ni 
 
 | Módulo | Importa |
 | :-- | :-- |
-| `index.html` · `main.js` (raíz) | `front/quards/main.js` |
-| `front/quards/main.js` | `ui/render.js`, `ui/debug.js` |
+| `index.html` · `main.js` (raíz) | `front/qards/main.js` |
+| `front/qards/main.js` | `ui/render.js`, `ui/debug.js` |
 | `ui/render.js` | `services/{quantum,rules,ai}.js`, `ui/{background,audio,debug,entangle,qard,collapse}.js` |
 | `services/rules.js` | `services/engine.js` |
 | `services/engine.js` | `back/estado.js` (`../../../back/`) |

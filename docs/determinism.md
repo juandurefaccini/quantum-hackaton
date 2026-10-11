@@ -1,6 +1,6 @@
-# Quards — Determinismo y semilla
+# Qards — Determinismo y semilla
 
-Quards usa **dos fuentes de azar distintas**, y hoy **solo una es reproducible**. Este documento dice
+Qards usa **dos fuentes de azar distintas**, y hoy **solo una es reproducible**. Este documento dice
 cuál es cuál, qué se puede repetir y qué **no** (para no prometer de más).
 
 ## Qué está sembrado (reproducible)
@@ -37,16 +37,16 @@ divergir en qué cara sale al medir**.
 - **Hasta la primera medición, sí.** Con `rules.newGame({ seed })` el estado inicial es idéntico.
 - **De punta a punta, no** (hoy). Al medir entra el azar cuántico y la partida puede cambiar de rumbo.
 - **Desde la UI no hay control de semilla:** el juego arranca con `seed = Date.now() % 100000`
-  (`front/quards/ui/render.js`). No hay forma de fijarla sin tocar código.
+  (`front/qards/ui/render.js`). No hay forma de fijarla sin tocar código.
 
-En los **tests** (`front/quards/tests/services.test.js`) se fija la semilla (`newGame({ seed })`) y se
+En los **tests** (`front/qards/tests/services.test.js`) se fija la semilla (`newGame({ seed })`) y se
 verifica que la partida **termina con un ganador** y que el estado queda **coherente** (`checkState`).
 **No** se verifica una jugada concreta: eso sería frágil justamente por el colapso no sembrado.
 
 ## Cómo reproducir hoy (desde código)
 
 ```js
-import { newGame } from './front/quards/services/rules.js';
+import { newGame } from './front/qards/services/rules.js';
 const a = newGame({ seed: 12345 });
 const b = newGame({ seed: 12345 });
 // a.cards, a.deck, a.players[].hand y a.players[].gates son idénticos.
