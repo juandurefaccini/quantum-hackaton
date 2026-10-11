@@ -83,13 +83,8 @@ export function applyGate(state, gate, a, b) {
   return { ok: true };
 }
 
-<<<<<<< HEAD:front/quards/services/rules.js
 // Espía una carta de la mano del rival. Gasta una carga y revela la carta COMPLETA: las dos caras
 // (outcomes[0] si mide 0, outcomes[1] si mide 1). No mide ni cambia nada de la carta, ni usa el azar.
-=======
-// Espía una carta de la mano del rival. Gasta una carga y revela uno de sus estados posibles (al azar,
-// con la semilla de la partida) junto con la cara asociada. No mide ni cambia nada de la carta.
->>>>>>> e13fae401905fe67c7986ececd22447e1beec312:front/qards/services/rules.js
 // Solo se pueden espiar cartas cuánticas sin medir (si no, error y no se gasta la carga).
 // Devuelve { ok, id, outcomes: [cara0, cara1] }; las probabilidades las calcula quien llama (quantum.js).
 export function spyCard(state, id) {

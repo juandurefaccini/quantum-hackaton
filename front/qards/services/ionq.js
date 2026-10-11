@@ -2,7 +2,7 @@
 // IonQ a través del proxy del dev-server (la API key queda server-side).
 // Las PROBABILIDADES no pasan por acá: se calculan exactas con el simulador de
 // referencia (o Qiskit en Qollab). IonQ solo aporta la MEDICIÓN (el colapso).
-const base = () => `${globalThis.QARDS_IONQ_PROXY || ''}/ionq`;
+const base = () => `${globalThis.QUARDS_IONQ_PROXY || ''}/ionq`;
 
 // { qubits, ops } -> circuito ionq.circuit.v0 (gateset qis).
 export function toIonQCircuit(group) {
