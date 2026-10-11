@@ -19,6 +19,7 @@ const CSS = `
     --co-gate-x: #7a2b22;
     --co-gate-z: #2b3a7a;
     --co-gate-ry: #4a3b6b;
+    --co-gate-sup: #5a2f7a;
     --co-gate-other: #2a2723;
     --co-cnot: var(--gold);
     --co-chance: var(--teal);
@@ -74,6 +75,7 @@ const CSS = `
   .co-gate.g-x { background: var(--co-gate-x); }
   .co-gate.g-z { background: var(--co-gate-z); }
   .co-gate.g-ry { background: var(--co-gate-ry); }
+  .co-gate.g-sup { background: var(--co-gate-sup); }
   .co-gate.meter { background: #16130f; border-color: var(--co-gold); color: var(--co-gold); }
   .co-ctrl { width: 14px; height: 14px; border-radius: 50%; background: var(--co-cnot); border: 2px solid var(--co-edge); }
   .co-tgt { width: 34px; height: 34px; border-radius: 50%; background: #0d1117; border: 2px solid var(--co-cnot); color: var(--co-cnot);
@@ -147,7 +149,7 @@ export function simular(group) {
   };
   const S = Math.SQRT1_2;
   for (const [gate, ...args] of group.ops || []) {
-    if (gate === 'h') one(args[0], [S, S, S, -S]);
+    if (gate === 'h' || gate === 'sup') one(args[0], [S, S, S, -S]);
     else if (gate === 'x') one(args[0], [0, 1, 1, 0]);
     else if (gate === 'z') one(args[0], [1, 0, 0, -1]);
     else if (gate === 'ry') { const c = Math.cos(args[0] / 2), s = Math.sin(args[0] / 2); one(args[1], [c, -s, s, c]); }

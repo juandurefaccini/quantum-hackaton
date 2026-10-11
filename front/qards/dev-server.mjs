@@ -79,7 +79,13 @@ const server = createServer(async (req, res) => {
   const filePath = resolve(join(ROOT, decodeURIComponent(url.pathname)));
   if (!filePath.startsWith(ROOT + sep) && filePath !== ROOT) return send(res, 403, 'forbidden');
   if (!existsSync(filePath) || !statSync(filePath).isFile()) return send(res, 404, 'not found');
-  send(res, 200, readFileSync(filePath), { 'Content-Type': TYPES[extname(filePath)] || 'application/octet-stream' });
+  // Sin caché: al editar JS/CSS, un refresh ya trae la versión nueva (dev).
+  send(res, 200, readFileSync(filePath), {
+    'Content-Type': TYPES[extname(filePath)] || 'application/octet-stream',
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
+  });
 });
 
 server.listen(PORT, () => {

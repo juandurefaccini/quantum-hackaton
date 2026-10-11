@@ -1,8 +1,8 @@
 // REGLAS Y TURNOS sobre el modelo del back (que no trae reglas).
 // Todo muta `state` (como el motor del back). La app orquesta: jugar -> medir -> resolver.
-import { createGame, aplicarPuerta1, aplicarCnot, otorgarPuerta, sortearPuerta, barajar, COLORS, MAX_QUBITS } from './engine.js';
+import { createGame, aplicarPuerta1, aplicarCnot, aplicarSuperponer, otorgarPuerta, barajar, COLORS, MAX_QUBITS } from './engine.js';
 
-const COLOR_ES = { red: 'rojo', blue: 'azul', green: 'verde', yellow: 'amarillo' };
+export const COLOR_ES = { red: 'rojo', blue: 'azul', green: 'verde', yellow: 'amarillo' };
 const SYM_ES = { skip: 'salta', reverse: 'reversa', draw2: '+2', wild: 'comodín', wild4: '+4' };
 
 // OJO (espiar la carta del rival). Cada jugador tiene `spies` cargas.
@@ -64,8 +64,12 @@ export function applyGate(state, gate, a, b) {
   const i = p.gates.indexOf(gate);
   if (i < 0) return { error: `No tenés una puerta ${String(gate).toUpperCase()}` };
   if (!p.hand.includes(a)) return { error: 'La carta no está en tu mano' };
-  if (state.cards[a].face) return { error: 'Esa carta ya colapsó' };
-  if (gate === 'cnot') {
+  if (gate === 'sup') {
+    // La superposición solo tiene sentido sobre una carta fija (con cara): la reabre a 50/50.
+    if (!state.cards[a].face) return { error: 'Esa carta ya está en superposición' };
+    aplicarSuperponer(state.cards, state.groups, a);
+  } else if (gate === 'cnot') {
+    if (state.cards[a].face) return { error: 'Esa carta ya colapsó' };
     const rival = state.players[1 - state.turn.current];
     const enRival = CNOT_SOBRE_RIVAL && rival.hand.includes(b);
     if (!p.hand.includes(b) && !enRival) return { error: 'El target no está en tu mano' };
@@ -76,6 +80,7 @@ export function applyGate(state, gate, a, b) {
     if (ga !== gb && ga.qubits + gb.qubits > MAX_QUBITS) return { error: `El grupo superaría ${MAX_QUBITS} qubits` };
     aplicarCnot(state.cards, state.groups, a, b);
   } else {
+    if (state.cards[a].face) return { error: 'Esa carta ya colapsó' };
     aplicarPuerta1(state.cards, state.groups, a, gate);
   }
   p.gates.splice(i, 1);
@@ -83,10 +88,10 @@ export function applyGate(state, gate, a, b) {
   return { ok: true };
 }
 
-// Espía una carta de la mano del rival. Gasta una carga y revela uno de sus estados posibles (al azar,
-// con la semilla de la partida) junto con la cara asociada. No mide ni cambia nada de la carta.
+// Espía una carta de la mano del rival. Gasta una carga y revela la carta COMPLETA: las dos caras
+// (outcomes[0] si mide 0, outcomes[1] si mide 1). No mide ni cambia nada de la carta, ni usa el azar.
 // Solo se pueden espiar cartas cuánticas sin medir (si no, error y no se gasta la carga).
-// Devuelve { ok, id, k, face }: k = 0 o 1 (estado revelado) y la cara asociada.
+// Devuelve { ok, id, outcomes: [cara0, cara1] }; las probabilidades las calcula quien llama (quantum.js).
 export function spyCard(state, id) {
   const p = playerOf(state);
   const rival = state.players[1 - state.turn.current];
@@ -96,9 +101,7 @@ export function spyCard(state, id) {
   if (c.face) return { error: 'Esa carta no es cuántica: no hay nada que espiar' };
   p.spies--;
   log(state, `${p.name} espía una carta de ${rival.name}`);
-  const r = sortearPuerta(state.rng.seed, [0, 1]);
-  state.rng.seed = r.seed;
-  return { ok: true, id, k: r.gate, face: c.outcomes[r.gate] };
+  return { ok: true, id, outcomes: [c.outcomes[0], c.outcomes[1]] };
 }
 
 // Juega una carta. Clásica -> resuelve ya. Cuántica -> pide medir su grupo.
@@ -145,15 +148,41 @@ function resolvePlay(state, cardId, face) {
 
   p.hand.splice(p.hand.indexOf(cardId), 1);
   state.discard.push(cardId);
-  state.activeColor = isWild(face) ? chooseWildColor(state, player) : face.color;
 
+  // Comodín: el color lo elige quien lo jugó. La partida queda en fase 'choosing' hasta que se llame a
+  // chooseColor() (el humano con el selector; la IA, con autoColor()). Si era su última carta, gana sin elegir.
+  if (isWild(face) && p.hand.length > 0) {
+    state.pending = { cardId, player };
+    state.phase = 'choosing';
+    log(state, `${p.name} jugó ${describeFace(face)}: elige el color`);
+    return { valid: true, needsColor: true };
+  }
+  if (!isWild(face)) state.activeColor = face.color;
+  return finishPlay(state, player, face);
+}
+
+// Elige el color de un comodín recién jugado y termina la jugada (efecto + cambio de turno).
+export function chooseColor(state, color) {
+  if (state.phase !== 'choosing' || !state.pending) return { error: 'No hay ningún comodín esperando color' };
+  if (!COLORS.includes(color)) return { error: `Color inválido: ${color}` };
+  const { cardId, player } = state.pending;
+  state.pending = null;
+  state.phase = 'play';
+  state.activeColor = color;
+  return finishPlay(state, player, state.cards[cardId].face);
+}
+
+// Efecto de la carta jugada (+2, +4, salto), victoria y cambio de turno.
+function finishPlay(state, player, face) {
+  const p = state.players[player];
   const sym = face.symbol;
   let skip = false;
   if (sym === 'skip' || sym === 'reverse') skip = true;
   if (sym === 'draw2') { drawCards(state, 1 - player, 2); skip = true; }
   if (sym === 'wild4') { drawCards(state, 1 - player, 4); skip = true; }
 
-  log(state, `${p.name} jugó ${describeFace(face)} (válida)${isWild(face) ? ` → color ${COLOR_ES[state.activeColor]}` : ''}`);
+  const conColor = isWild(face) && p.hand.length > 0;
+  log(state, `${p.name} jugó ${describeFace(face)} (válida)${conColor ? ` → color ${COLOR_ES[state.activeColor]}` : ''}`);
   if (p.hand.length === 0) { state.phase = 'over'; state.winner = p.id; log(state, `${p.name} gana`); return { valid: true, won: true }; }
   advance(state, skip);
   return { valid: true };
@@ -186,7 +215,8 @@ function recargarEspia(state) {
   }
 }
 
-function chooseWildColor(state, player) {
+// Color más conveniente para un comodín: el que más aparece en la mano (lo usa la IA).
+export function autoColor(state, player) {
   const counts = {};
   for (const id of state.players[player].hand) for (const f of possibleFaces(state, id)) if (f.color) counts[f.color] = (counts[f.color] || 0) + 1;
   let best = COLORS[0], n = -1;
