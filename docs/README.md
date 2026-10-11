@@ -35,7 +35,6 @@ El motor por defecto es el **simulador local**, así que no necesita backend ni 
 | Los motores cuánticos | [`engines.md`](engines.md) |
 | Problemas conocidos / deuda | [`known-issues.md`](known-issues.md) |
 | El pedido del hackathon | [`hackathon-brief.md`](hackathon-brief.md) |
-| Propuestas de mejora cuántica | [`mejoras/`](mejoras/README.md) |
 | Que un agente de IA trabaje en el repo | [`AGENTS.md`](AGENTS.md) |
 
 ## Requisitos
@@ -179,7 +178,6 @@ tests corren con el motor de referencia local, así que el stub (que lanza) nunc
 │   ├── idea.md · decisions.md · plan.md
 │   ├── gates.md · quantum-concepts.md · determinism.md · engines.md
 │   ├── known-issues.md · roadmap.md · hackathon-brief.md
-│   ├── mejoras/            propuestas de mejora cuántica (un doc por idea)
 │   └── AGENTS.md           contexto para agentes de IA
 ├── examples/           notebook Qiskit ejecutable + requirements
 ├── assets/             notas para grabar el demo (sin GIF)

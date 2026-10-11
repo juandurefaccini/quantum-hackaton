@@ -1,7 +1,6 @@
 # Qards — Roadmap
 
-Qué falta, en orden de impacto. Estado actual en [`plan.md`](plan.md); ideas cuánticas más grandes en
-[`mejoras/`](mejoras/).
+Qué falta, en orden de impacto. Estado actual en [`plan.md`](plan.md).
 
 ## Corto plazo (producto)
 
@@ -26,9 +25,3 @@ Qué falta, en orden de impacto. Estado actual en [`plan.md`](plan.md); ideas cu
 | :- | :-- | :-- |
 | 8 | **Multijugador** | Mover el motor a un servidor que guarde la mano de cada jugador (el motor ya está desacoplado y es serializable). |
 | 9 | **Replay** | Guardar la secuencia de acciones + semilla para reproducir una partida. |
-
-## Ideas cuánticas (propuestas)
-
-Están en [`mejoras/`](mejoras/README.md), con diseño y riesgos cada una: amplitudes complejas,
-puertas de fase (S/T/Y/CZ/SWAP), entrelazamiento GHZ/W, visualizador de circuitos, oráculo + Grover
-como el "ojo", teleportación y ruido/decoherencia.

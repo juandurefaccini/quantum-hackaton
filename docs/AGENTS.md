@@ -100,7 +100,6 @@ son exactas; IonQ solo aporta la **medición**; si el motor remoto falla, **cae 
 | `docs/plan.md` | Estado y roadmap |
 | `docs/gates.md` · `quantum-concepts.md` · `determinism.md` · `engines.md` | Puertas, conceptos, semilla, motores |
 | `docs/known-issues.md` · `roadmap.md` · `hackathon-brief.md` | Problemas, pendientes, brief del hackathon |
-| `docs/mejoras/` | Propuestas cuánticas (un doc por idea) |
 | `README.md` · `README.es.md` | Portada (inglés / español) + ejemplo Qiskit |
 
 ## Checklist antes de cerrar un cambio

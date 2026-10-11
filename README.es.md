@@ -184,7 +184,7 @@ Docs: [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) (implementación canónica) ·
 - **IA más lista:** reemplazar la heurística por expectimax sobre las probabilidades ocultas.
 - **Multijugador:** mover el motor a un servidor que guarde la mano de cada jugador.
 - **Más contenido cuántico:** estados GHZ multi-qubit, puertas de fase, el oráculo de Grover como
-  espía — ver las propuestas en [`docs/mejoras/`](docs/mejoras/) y [`docs/roadmap.md`](docs/roadmap.md).
+  espía — ver [`docs/roadmap.md`](docs/roadmap.md).
 
 ## Licencia
 

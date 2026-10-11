@@ -174,7 +174,7 @@ falta WASM JSPI).
 
 **Remix:** reemplazar la heurística de la IA por expectimax sobre las probabilidades ocultas; mover el
 motor a un servidor para multijugador real; agregar estados GHZ, puertas de fase o un "espía" con
-Grover. Ver `docs/mejoras/` y `docs/roadmap.md`.
+Grover. Ver `docs/roadmap.md`.
 
 ## Enlaces
 

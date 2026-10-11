@@ -170,7 +170,7 @@ the collapse is not reproducible yet); Safari cannot run the project (no WASM JS
 
 **Remix it:** swap the heuristic AI for expectimax over hidden probabilities; move the engine to a
 server for real multiplayer; add GHZ states, phase gates, or a Grover-powered "spy". See
-`docs/mejoras/` and `docs/roadmap.md`.
+`docs/roadmap.md`.
 
 ## Links
 

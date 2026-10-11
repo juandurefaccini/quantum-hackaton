@@ -184,8 +184,8 @@ Docs: [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) (canonical implementation) ·
 
 - **Smarter AI:** replace the heuristic with expectimax over the hidden probabilities.
 - **Multiplayer:** move the engine to a server that holds each player's hand.
-- **New quantum content:** multi-qubit GHZ states, phase gates, Grover's oracle as the spy — see the
-  proposals in [`docs/mejoras/`](docs/mejoras/) and [`docs/roadmap.md`](docs/roadmap.md).
+- **New quantum content:** multi-qubit GHZ states, phase gates, Grover's oracle as the spy — see
+  [`docs/roadmap.md`](docs/roadmap.md).
 
 ## License
 
