@@ -7,7 +7,7 @@ Doc técnica completa: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 - **Qué:** Qards, un juego de cartas cuántico 1v1 (humano vs IA). JS puro, sin dependencias.
 - **Correr:** `node front/qards/dev-server.mjs` → `http://localhost:8000`.
-- **Verificar:** `cd front/qards && npm test` (15/15). No hay lint ni typecheck.
+- **Verificar:** `cd front/qards && npm test` (10/10). No hay lint ni typecheck.
 - **Regla de oro:** toda mutación de `state` debe dejar `checkState(state)` vacío.
 - **No rompas:** imports estáticos (Qollab) y la UI solo importa `services/*`.
 
@@ -41,7 +41,9 @@ No hay lint ni typecheck ni `npm install`. La verificación es **correr los test
   `engine.js` (fachada del back), `quantum.js` (**puerto cuántico**), `rules.js` (reglas/turnos),
   `ai.js`, `ionq.js`.
 - `front/qards/ui/` — `render.js` (la app), `qard.js` (carta), `collapse.js` (animación de
-  medición), `entangle.js`, `background.js`, `audio.js`, `debug.js`.
+  medición), `superpose.js` (animación inversa: colapsada → superpuesta, con haz WebGL), `gatecard.js`
+  (carta de puerta), `circuit-overlay.js` (pantalla del circuito), `entangle.js`, `background.js`,
+  `audio.js`, `debug.js`.
 - `index.html` + `main.js` (raíz) — entry ejecutable que monta la app en `#root`.
 
 **Flujo de una jugada:** `rules.play` → (si es cuántica) `phase='measuring'` y devuelve el grupo →
@@ -68,16 +70,17 @@ son exactas; IonQ solo aporta la **medición**; si el motor remoto falla, **cae 
 
 ## Decisiones clave (ver [`decisions.md`](decisions.md))
 
-- Las puertas (X/Z/H/CNOT) **no son cartas**: se otorgan por turno y son preparación libre.
+- Las puertas (X/Z/H/SUP/CNOT) **no son cartas**: se otorgan por turno y son preparación libre.
 - Entrelazar = **CNOT que fusiona grupos**.
 - **Medición parcial**: al jugar una carta se mide solo su qubit; el resto del grupo queda
   condicionado (`group.bits`).
-- Mazo de **108 cartas** (60 clásicas + 48 cuánticas). Mano inicial 7.
+- **Toda carta es un qubit**: 108 en el mazo = 48 en **superposición** + 60 **fijas** (estado definido
+  que se ve de una cara, con una cara oculta; la puerta **SUP** las reabre). Mano inicial 7.
 - Victoria = **mano vacía** (las puertas no cuentan).
 
 ## Gotchas / deuda técnica
 
-- `ui/circuit.js` está **huérfano** (nadie lo importa).
+- `ui/circuit.js` fue **eliminado** (huérfano); el circuito vivo es `ui/circuit-overlay.js` (overlay "Ver circuito").
 - `utils/render.js` y `utils/rules.js` son **copias viejas y rotas** (NO son la app real; la app
   está en `front/qards/`).
 - Los comodines eligen color automáticamente (no hay picker).
@@ -104,7 +107,7 @@ son exactas; IonQ solo aporta la **medición**; si el motor remoto falla, **cae 
 
 ## Checklist antes de cerrar un cambio
 
-- [ ] `cd front/qards && npm test` pasa (15/15).
+- [ ] `cd front/qards && npm test` pasa (10/10).
 - [ ] El estado queda coherente (`checkState` vacío) tras cada acción.
 - [ ] No agregué imports dinámicos (Qollab no los empaqueta).
 - [ ] La UI no importa `back/quantum/*` ni `ionq.js`.

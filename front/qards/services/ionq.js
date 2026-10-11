@@ -7,7 +7,7 @@ const base = () => `${globalThis.QARDS_IONQ_PROXY || ''}/ionq`;
 // { qubits, ops } -> circuito ionq.circuit.v0 (gateset qis).
 export function toIonQCircuit(group) {
   const circuit = group.ops.map(([gate, ...a]) => {
-    if (gate === 'h') return { gate: 'h', target: a[0] };
+    if (gate === 'h' || gate === 'sup') return { gate: 'h', target: a[0] }; // 'sup' = Hadamard
     if (gate === 'x') return { gate: 'x', target: a[0] };
     if (gate === 'z') return { gate: 'z', target: a[0] };
     if (gate === 'ry') return { gate: 'ry', target: a[1], rotation: a[0] };

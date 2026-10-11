@@ -24,17 +24,17 @@ un **CNOT** y el colapso lo decide un **motor cuántico** (simulador local, IonQ
 
 | Pieza | Qué es | Equivalente cuántico |
 | :-- | :-- | :-- |
-| **Carta clásica** | Carta clásica común: color + número o acción (skip/reverse/+2) + comodines (`wild`, `wild4`). Una sola cara. | Estado base |
-| **Carta cuántica** | Carta con **dos caras posibles** (p. ej. Rojo 5 / Azul 2), una por estado `\|0⟩` y `\|1⟩`. Su estado solo lo conoce su dueño. | Qubit en superposición |
+| **Carta fija** | Se ve como la carta clásica común (color + número/acción, o comodín): una sola cara. Por dentro es un qubit en un **estado definido** con una **cara oculta**; la puerta **SUP** la reabre. | Qubit en `\|0⟩` |
+| **Carta cuántica** | Carta con **dos caras posibles** visibles (p. ej. Rojo 5 / Azul 2), una por estado `\|0⟩` y `\|1⟩`. Su estado solo lo conoce su dueño. | Qubit en superposición |
 | **Grupo entrelazado** | Dos o más cartas cuánticas unidas por un **CNOT**: sus resultados quedan correlacionados. | Par de Bell / GHZ |
-| **Puerta** | Operación cuántica: **X** (intercambia probabilidades), **H** (las convierte en fase), **Z** (invierte la fase), **CNOT** (entrelaza dos cartas). **No es una carta.** | Compuertas |
+| **Puerta** | Operación cuántica: **X** (intercambia probabilidades), **H** (las convierte en fase), **Z** (invierte la fase), **SUP** (reabre una carta fija), **CNOT** (entrelaza dos cartas). **No es una carta.** | Compuertas |
 
 ## 3. Reglas
 
 1. Cada jugador arranca con **7 cartas** (clásicas o cuánticas, al azar).
 2. En tu turno:
-   - **Preparar (libre):** aplicás las puertas de tu mano que quieras (X/Z/H a una carta, CNOT a
-     dos). **No cuesta turno y no mide.**
+  - **Preparar (libre):** aplicás las puertas de tu mano que quieras (X/Z/H/SUP a una carta, CNOT a
+    dos). **No cuesta turno y no mide.**
    - **Jugar (una):** jugás una carta (arrastrándola al descarte) o **robás** (solo si no podés
      jugar). Esto **cierra el turno**.
 3. Una carta es **jugable** si **alguna de sus caras posibles** coincide con el descarte (por color
@@ -49,7 +49,7 @@ un **CNOT** y el colapso lo decide un **motor cuántico** (simulador local, IonQ
 
 ## 4. Puertas (se otorgan, no están en el mazo)
 
-- Recibís **1 puerta aleatoria** (X/Z/H/CNOT) cada **2 turnos propios** (turno 1, 3, 5…), con un
+- Recibís **1 puerta aleatoria** (X/Z/H/SUP/CNOT) cada **2 turnos propios** (turno 1, 3, 5…), con un
   **tope de 3** en la mano.
 - Se acumulan y se aplican **gratis** (no cierran el turno). La carta se mide **recién al jugarla**.
 

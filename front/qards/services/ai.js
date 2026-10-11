@@ -1,7 +1,7 @@
 // IA sobre el modelo del back. Devuelve un descriptor de acción; el driver lo
 // aplica. Puede devolver preparación (gate) y el driver la repite hasta que juegue/robe.
 import * as quantum from './quantum.js';
-import { clone, aplicarPuerta1, aplicarCnot } from './engine.js';
+import { clone, aplicarPuerta1, aplicarCnot, aplicarSuperponer } from './engine.js';
 import { playableIds, topFace } from './rules.js';
 
 const isWild = f => f.symbol === 'wild' || f.symbol === 'wild4';
@@ -28,7 +28,17 @@ async function bestPrep(state, player) {
   if (!p.gates.length) return null;
   const before = await bestProb(state, player);
   const targets = p.hand.filter(id => !state.cards[id].face);
+  const fijas = p.hand.filter(id => state.cards[id].face && state.cards[id].outcomes);
   for (const gate of p.gates) {
+    // 'sup' reabre una carta FIJA: su target es una con cara (no las que ya están superpuestas).
+    if (gate === 'sup') {
+      for (const a of fijas) {
+        const trial = clone(state);
+        try { aplicarSuperponer(trial.cards, trial.groups, a); } catch { continue; }
+        if (await bestProb(trial, player) > before + 1e-9) return { type: 'gate', gate, a };
+      }
+      continue;
+    }
     for (const a of targets) {
       if (gate === 'cnot') {
         for (const b of targets) {

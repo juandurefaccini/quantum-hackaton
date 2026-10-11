@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { newGame, play, resolveMeasure, applyGate, draw, playableIds } from '../services/rules.js';
+import { newGame, play, resolveMeasure, applyGate, draw, playableIds, chooseColor, autoColor } from '../services/rules.js';
 import { chooseAction } from '../services/ai.js';
 import * as quantum from '../services/quantum.js';
 import { checkState } from '../services/engine.js';
@@ -10,8 +10,11 @@ async function step(state, action) {
   if (action.type === 'gate') return applyGate(state, action.gate, action.a, action.b);
   if (action.type === 'draw') return draw(state);
   const r = play(state, action.cardId);
-  if (r.needsMeasure) return resolveMeasure(state, await quantum.medirGrupo(r.needsMeasure));
-  return r;
+  const out = r.needsMeasure ? resolveMeasure(state, await quantum.medirGrupo(r.needsMeasure)) : r;
+  // Un comodín jugado deja la partida en fase 'choosing' hasta que alguien elige el color
+  // (puede salir de una carta cuántica medida). En IA vs IA elige el jugador activo con autoColor().
+  if (state.phase === 'choosing') return chooseColor(state, autoColor(state, state.turn.current));
+  return out;
 }
 
 test('newGame: 7 cartas, una puerta para el primero, coherencia OK', () => {
@@ -67,6 +70,38 @@ test('H·Z·H ≡ X: la fase se vuelve probabilidad (coincide con Qiskit Stateve
   // Z sola (sin H) NO cambia las probabilidades: la fase es invisible hasta que una H la revela.
   const zOnly = distribucion({ qubits: 1, ops: [['ry', theta, 0], ['z', 0]] });
   assert.ok(Math.abs(zOnly[0] - 0.8) < 1e-12);
+});
+
+// Todas las cartas son qubits: las "fijas" se ven de una cara pero guardan una cara OCULTA y un grupo.
+test('todas las cartas son qubits y las fijas tienen cara oculta', () => {
+  const s = newGame({ seed: 12 });
+  for (const id of Object.keys(s.cards)) {
+    const c = s.cards[id];
+    assert.ok(c.group, `${id} no tiene grupo`);
+    assert.ok(c.outcomes, `${id} no tiene outcomes`);
+    if (c.face) assert.equal(s.groups[c.group].bits[c.qubit], 0, `${id} fija no nace en |0⟩`);
+  }
+  assert.deepEqual(checkState(s), []);
+});
+
+// La puerta de superposición ('sup') reabre una carta fija: la deja 50/50 entre sus dos caras.
+test('sup reabre una carta fija (50/50) y mantiene la coherencia', async () => {
+  const s = newGame({ seed: 11 });
+  const fija = s.players[0].hand.find(id => s.cards[id].face && s.cards[id].outcomes);
+  assert.ok(fija, 'debe haber una carta fija en la mano');
+  const c = s.cards[fija];
+  s.players[0].gates.push('sup');
+  const r = applyGate(s, 'sup', fija);
+  assert.equal(r.ok, true);
+  assert.equal(c.face, null);
+  assert.deepEqual(s.groups[c.group].bits, [null]);
+  assert.deepEqual(s.groups[c.group].ops, [['sup', 0]]);
+  const p = await quantum.probabilidadesGrupo(s.groups[c.group]);
+  assert.ok(Math.abs(p[0][0] - 0.5) < 1e-9, 'debe quedar 50/50');
+  assert.deepEqual(checkState(s), []);
+  // Ya en superposición: la puerta no aplica.
+  s.players[0].gates.push('sup');
+  assert.ok(applyGate(s, 'sup', fija).error);
 });
 
 for (const level of ['easy', 'medium', 'hard']) {

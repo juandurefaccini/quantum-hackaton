@@ -5,6 +5,7 @@ export {
   checkState,
   aplicarPuerta1,
   aplicarCnot,
+  aplicarSuperponer,
   otorgarPuerta,
   sortearPuerta,
   barajar,

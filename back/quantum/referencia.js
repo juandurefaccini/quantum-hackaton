@@ -3,7 +3,7 @@
 // corre en Node: sirve para contrastar los resultados de Qiskit y para correr tests sin Qollab.
 //
 //
-// Puertas: 'h', 'x', 'z', 'ry' y 'cx'. Todas tienen matrices reales, así que las amplitudes quedan
+// Puertas: 'h'/'sup', 'x', 'z', 'ry' y 'cx'. Todas tienen matrices reales, así que las amplitudes quedan
 // reales y alcanza con un número por estado. Si algún día se suma una puerta con fases (S, Y, Rz)
 // hay que pasar a números complejos.
 //
@@ -37,7 +37,7 @@ export function amplitudes(group) {
   const amp = new Float64Array(1 << group.qubits);
   amp[0] = 1;
   for (const [gate, ...a] of group.ops) {
-    if (gate === 'h') {
+    if (gate === 'h' || gate === 'sup') {
       const s = Math.SQRT1_2;
       aplicar1(amp, a[0], [[s, s], [s, -s]]);
     } else if (gate === 'x') {

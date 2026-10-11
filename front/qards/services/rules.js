@@ -1,6 +1,6 @@
 // REGLAS Y TURNOS sobre el modelo del back (que no trae reglas).
 // Todo muta `state` (como el motor del back). La app orquesta: jugar -> medir -> resolver.
-import { createGame, aplicarPuerta1, aplicarCnot, otorgarPuerta, barajar, COLORS, MAX_QUBITS } from './engine.js';
+import { createGame, aplicarPuerta1, aplicarCnot, aplicarSuperponer, otorgarPuerta, barajar, COLORS, MAX_QUBITS } from './engine.js';
 
 export const COLOR_ES = { red: 'rojo', blue: 'azul', green: 'verde', yellow: 'amarillo' };
 const SYM_ES = { skip: 'salta', reverse: 'reversa', draw2: '+2', wild: 'comodín', wild4: '+4' };
@@ -64,8 +64,12 @@ export function applyGate(state, gate, a, b) {
   const i = p.gates.indexOf(gate);
   if (i < 0) return { error: `No tenés una puerta ${String(gate).toUpperCase()}` };
   if (!p.hand.includes(a)) return { error: 'La carta no está en tu mano' };
-  if (state.cards[a].face) return { error: 'Esa carta ya colapsó' };
-  if (gate === 'cnot') {
+  if (gate === 'sup') {
+    // La superposición solo tiene sentido sobre una carta fija (con cara): la reabre a 50/50.
+    if (!state.cards[a].face) return { error: 'Esa carta ya está en superposición' };
+    aplicarSuperponer(state.cards, state.groups, a);
+  } else if (gate === 'cnot') {
+    if (state.cards[a].face) return { error: 'Esa carta ya colapsó' };
     const rival = state.players[1 - state.turn.current];
     const enRival = CNOT_SOBRE_RIVAL && rival.hand.includes(b);
     if (!p.hand.includes(b) && !enRival) return { error: 'El target no está en tu mano' };
@@ -76,6 +80,7 @@ export function applyGate(state, gate, a, b) {
     if (ga !== gb && ga.qubits + gb.qubits > MAX_QUBITS) return { error: `El grupo superaría ${MAX_QUBITS} qubits` };
     aplicarCnot(state.cards, state.groups, a, b);
   } else {
+    if (state.cards[a].face) return { error: 'Esa carta ya colapsó' };
     aplicarPuerta1(state.cards, state.groups, a, gate);
   }
   p.gates.splice(i, 1);

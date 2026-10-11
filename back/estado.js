@@ -111,14 +111,29 @@ export function aplicarPuerta1(cards, groups, idCarta, gate) {
   groups[c.group].ops.push([gate, c.qubit]);
 }
 
+// Pone una carta FIJA (en estado definido, con cara) en SUPERPOSICIÓN: la "reabre" (borra su cara y
+// el bit del grupo) y le aplica la puerta `sup` (matriz de Hadamard), que sobre |0⟩ deja 50/50 entre
+// sus dos caras. Solo vale para cartas con cara: una ya superpuesta se prepara con H/X/Z comunes.
+export function aplicarSuperponer(cards, groups, idCarta, gate = 'sup') {
+  const c = cards[idCarta];
+  if (!c?.group) throw new Error('La carta no es cuántica');
+  if (!c.face) throw new Error('La carta ya está en superposición');
+  const g = groups[c.group];
+  c.face = null;
+  g.bits[c.qubit] = null;
+  g.collapsed = false;
+  g.ops.push([gate, c.qubit]);
+}
+
 // ---------------------------------------------------------------------------
 // CATÁLOGO
 // Es el lugar donde se ajusta el balance.
 // ---------------------------------------------------------------------------
 export const CATALOGO = {
   // Mazo base de 156 cartas: el juego de descarte clásico con 3 copias (en vez de 2) de cada número y de cada
-  // acción, un solo cero por color y los 8 comodines de siempre. De acá salen las cartas con las
-  // que se fabrican las cuánticas, así que el mazo final queda con 60 normales + 48 cuánticas = 108.
+  // acción, un solo cero por color y los 8 comodines de siempre. De acá salen las cartas con las que se
+  // fabrican las cuánticas: el mazo final queda con 48 cartas EN SUPERPOSICIÓN + 60 cartas FIJAS (qubits
+  // en un estado definido, que se ven de una cara pero guardan una cara oculta) = 108.
   // Cada entrada es [símbolo, copias por color].
   porColor: [
     [0, 1],
@@ -139,10 +154,10 @@ export const CATALOGO = {
   // (Con 24 quedarían las 48 cartas cuánticas emparejadas.)
   entrelazados: 0,
 
-  // Mazo de puertas, aparte del de cartas. Cada entrada repetida suma chance: X y CNOT 1/3 cada una,
-  // H y Z 1/6. (Z sola no cambia probabilidades y H deja la carta casi clásica, por eso salen menos.)
-  // 'x', 'z' y 'h' se aplican a una carta; 'cnot' a dos (control y target).
-  puertas: ['x', 'x', 'cnot', 'cnot', 'h', 'z'],
+  // Mazo de puertas, aparte del de cartas. Cada entrada repetida suma chance: X y CNOT salen seguido,
+  // H y Z menos (Z sola no cambia probabilidades y H deja la carta casi clásica), y 'sup' (superposición)
+  // es la puerta que reabre una carta fija. 'x', 'z', 'h' y 'sup' se aplican a una carta; 'cnot' a dos.
+  puertas: ['x', 'x', 'cnot', 'cnot', 'h', 'z', 'sup', 'sup'],
 };
 
 // ---------------------------------------------------------------------------
@@ -194,6 +209,9 @@ export function armarMazo(catalogo = CATALOGO, seed = 1) {
     }
   }
 
+  // Caras base del mazo: se usan (duplicadas) para darle a cada carta fija su cara OCULTA.
+  const carasBase = Object.values(cards).map((c) => c.face);
+
   // 3) Superposiciones: se fabrican "por detrás" combinando dos cartas clásicas del mazo.
   //    Las dos cartas desaparecen y sus caras pasan a ser las dos caras posibles de una carta nueva
   //    (cara si mide 0, cara si mide 1). Es un grupo de 1 qubit.
@@ -228,6 +246,29 @@ export function armarMazo(catalogo = CATALOGO, seed = 1) {
     superposiciones.push(cid);
   }
 
+  // 3.b) Cartas FIJAS: las que sobraron del pool son qubits en un estado DEFINIDO. Se siguen viendo
+  //      como una carta de una sola cara (outcomes[0] = cara visible) pero guardan una segunda cara
+  //      OCULTA (outcomes[1]) tomada de un pool DUPLICADO de caras base. Nacen en |0⟩ con el bit ya
+  //      medido (bits=[0], collapsed), así una puerta de superposición ('sup') las puede reabrir.
+  const dup = barajar(carasBase, seed);
+  seed = dup.seed;
+  const dupPool = dup.items;
+  let dip = 0;
+  for (const idV of pool) {
+    const visible = cards[idV].face;
+    let partner = visible;
+    while (dip < dupPool.length) { // primera cara del pool duplicado distinta de la visible
+      const f = dupPool[dip++];
+      if (!mismaCara(f, visible)) { partner = { ...f }; break; }
+    }
+    const gid = nuevoGrupo();
+    const g = grupo(gid, 1, [], [idV]);
+    g.bits = [0];         // ya "midió" 0: su cara visible es outcomes[0]
+    g.collapsed = true;
+    groups[gid] = g;
+    cards[idV] = { id: idV, group: gid, qubit: 0, outcomes: [visible, partner], face: visible };
+  }
+
   // 4) Pares entrelazados: se aplica un CNOT entre dos cartas cuánticas (control y target al azar).
   //    Los dos grupos se fusionan en uno de 2 qubits. Como el target tiene su propia superposición,
   //    el entrelazamiento no es "perfecto": el control condiciona al target sin decidirlo del todo.
@@ -253,10 +294,10 @@ export function createGame({ players, seed = 1, handSize = 7 }) {
   const barajado = barajar(mazo.ids, mazo.seed);
   const deck = barajado.items; // el tope es el último
 
-  // La primera carta de la mesa es siempre una carta clásica con número (sin efecto).
+  // La primera carta de la mesa es una carta FIJA con número (visible, sin efecto).
   const i = deck.findIndex((id) => {
     const c = mazo.cards[id];
-    return c.group === null && typeof c.face.symbol === 'number';
+    return c.face && typeof c.face.symbol === 'number';
   });
   const [primera] = deck.splice(i, 1);
 

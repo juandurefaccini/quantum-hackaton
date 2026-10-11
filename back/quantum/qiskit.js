@@ -15,7 +15,7 @@ const SHOTS_CONDICIONADOS = 512;
 export function construirCircuito({ qubits, ops }, { medir = false } = {}) {
   const qc = medir ? QuantumCircuit(qubits, qubits) : QuantumCircuit(qubits); // sin `new`
   for (const [gate, ...a] of ops) {
-    if (gate === 'h') qc.h(a[0]);
+    if (gate === 'h' || gate === 'sup') qc.h(a[0]); // 'sup' = Hadamard (reabre una carta fija)
     else if (gate === 'x') qc.x(a[0]);
     else if (gate === 'z') qc.z(a[0]);
     else if (gate === 'ry') qc.ry(a[0], a[1]);   // ry(ángulo, qubit)

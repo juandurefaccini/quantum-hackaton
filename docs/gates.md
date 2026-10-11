@@ -14,6 +14,7 @@ No son cartas: se otorgan por turno (ver [`idea.md`](idea.md) §4).
 | **X** | `[[0,1],[1,0]]` | **Intercambia** P(0) ↔ P(1) | No cambia la fase |
 | **Z** | `[[1,0],[0,-1]]` | **No cambia** P(0)/P(1) | **Invierte** la fase (`+` ↔ `−`) |
 | **H** | `1/√2 · [[1,1],[1,-1]]` | **Convierte** la fase en probabilidad | **Convierte** la probabilidad en fase |
+| **SUP** | `1/√2 · [[1,1],[1,-1]]` (igual que H) | **Reabre** una carta fija: la deja **50/50** | — |
 | **CNOT** | 2 qubits: `control → target` | **Entrelaza**: corrige el target según el control | — |
 
 ## Estado antes → después (manual)
@@ -29,6 +30,7 @@ con su primera cara (`|0⟩`).
 | **Z** | `\|0⟩` | `\|0⟩` (sin cambio) | En `\|0⟩` no se nota |
 | **Z** | `ry` con P(0) = 90%, fase `+` | P(0) = 90%, fase `−` | Mismas probabilidades, fase dada vuelta |
 | **H** | `\|0⟩` | 50% / 50% | Superposición exacta |
+| **SUP** | carta **fija** (P(0) = 100%, cara oculta) | 50% / 50% | Reabre una carta fija: le da superposición |
 | **H** | `ry` con P(0) = 90%, fase `+` | P(0) = 80% | La fase se vuelve probabilidad |
 | **H Z H** | `\|0⟩` | `\|1⟩` | `HZH` = `X` |
 | **H X H** | `\|0⟩` | `\|0⟩` | `HXH` = `Z` |
@@ -42,6 +44,8 @@ con su primera cara (`|0⟩`).
   aplicás una **H** (que traduce la fase a probabilidad). Por eso en el panel Info se muestra la
   línea "Fase".
 - **H** es la que **reorienta** la carta: pone las probabilidades en función de la fase actual.
+- **SUP** (superposición) **reabre una carta fija**: toda carta nace siendo un qubit, pero las fijas
+  se ven de una sola cara (estado definido con una **cara oculta**). La SUP las deja 50/50 entre sus dos caras.
 - **CNOT** **entrelaza** dos cartas: al medir una, la otra queda fijada por la correlación. En la
   mano se muestran juntas, enmarcadas como "⚛ entrelazadas".
 

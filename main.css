@@ -75,6 +75,9 @@ section { position: relative; }
 }
 .card { background: transparent; border: 0; box-shadow: none; }
 .card.playable { outline: 3px solid var(--gold); outline-offset: 2px; box-shadow: 0 0 14px var(--gold); }
+/* Objetivo válido de una puerta pendiente (p. ej. SUP): se distingue del "jugable" (dorado). */
+.card.gate-target { outline: 3px dashed var(--teal); outline-offset: 3px; box-shadow: 0 0 16px rgba(34, 179, 160, 0.6); cursor: pointer; }
+.card.gate-target:hover { outline-style: solid; transform: translateY(-6px); }
 .card.selected { transform: translateY(-8px); outline: 3px solid var(--teal); outline-offset: 2px; box-shadow: 0 0 16px var(--teal); }
 .card.facedown {
   background: linear-gradient(135deg, #143b37, #0d2b28);
@@ -358,3 +361,54 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   animation: cc-ring 0.6s ease-out forwards; pointer-events: none;
 }
 @keyframes cc-ring { from { opacity: 0.9; transform: scale(0.9); } to { opacity: 0; transform: scale(1.25); } }
+
+/* --- animación de superposición (separación: colapsada -> superpuesta) --- */
+.superpose-fx {
+  position: fixed; z-index: 266; pointer-events: none;
+  width: var(--card-w); aspect-ratio: 5 / 7;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 0 22px rgba(34, 179, 160, 0.45));
+}
+.superpose-fx .sp-stage { position: absolute; inset: 0; }
+.superpose-fx .sp-card { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; }
+
+.superpose-fx .sp-classic { opacity: 1; transition: opacity 0.5s ease; }
+.superpose-fx.charging .sp-classic { animation: sp-charge 0.48s ease-in-out; }
+.superpose-fx.splitting .sp-classic { opacity: 0; }
+
+/* La carta cuántica se "abre" desde la esquina superior izquierda. */
+.superpose-fx .sp-quantum {
+  clip-path: polygon(0 0, 0 0, 0 0, 0 0);
+  transition: clip-path 0.78s cubic-bezier(0.6, 0, 0.25, 1);
+}
+.superpose-fx.splitting .sp-quantum,
+.superpose-fx.settled .sp-quantum { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
+.superpose-fx .sp-quantum .sym { opacity: 0; transition: opacity 0.4s ease 0.28s; }
+.superpose-fx.splitting .sp-quantum .sym,
+.superpose-fx.settled .sp-quantum .sym { opacity: 1; }
+
+.superpose-fx .sp-kets { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.superpose-fx .sp-ket {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-family: ui-monospace, monospace; font-size: calc(var(--card-w) * 0.3);
+  font-weight: 700; color: #fff; opacity: 0;
+  text-shadow: 0 0 12px rgba(34, 179, 160, 0.9), 3px 3px 0 var(--edge);
+}
+.superpose-fx.splitting .sp-ket0 { animation: sp-flick 0.5s steps(1) infinite; }
+.superpose-fx.splitting .sp-ket1 { animation: sp-flick 0.5s steps(1) infinite; animation-delay: -0.25s; }
+.superpose-fx.settled .sp-ket { opacity: 0; transition: opacity 0.3s ease; }
+@keyframes sp-flick { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes sp-charge {
+  0%, 100% { transform: scale(1); filter: none; }
+  50% { transform: scale(1.06); filter: brightness(1.4); }
+}
+
+.superpose-fx .sp-caption {
+  position: absolute; left: 50%; transform: translateX(-50%); bottom: -1.9em;
+  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--teal); white-space: nowrap; text-shadow: 0 1px 0 var(--edge);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .superpose-fx { display: none; }
+}

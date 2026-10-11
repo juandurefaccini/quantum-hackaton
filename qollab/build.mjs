@@ -23,13 +23,13 @@ const ROOT = resolve(HERE, '..');
 const APP = join(HERE, 'app');
 const ZIP = join(HERE, 'qards-qollab.zip');
 
-// entry (raíz) + app + back. `ui/circuit.js` queda afuera: está huérfano (nadie lo importa).
+// entry (raíz) + app + back.
 const FILES = [
   [join(ROOT, 'front/qards/index.html'), 'index.html'],
   [join(ROOT, 'front/qards/main.js'), 'main.js'],
   [join(ROOT, 'main.css'), 'main.css'],
 ];
-const UI = ['render.js', 'debug.js', 'qard.js', 'collapse.js', 'entangle.js', 'background.js', 'audio.js'];
+const UI = ['render.js', 'debug.js', 'qard.js', 'collapse.js', 'superpose.js', 'entangle.js', 'background.js', 'gatecard.js', 'circuit-overlay.js', 'audio.js'];
 const SERVICES = ['engine.js', 'rules.js', 'ai.js', 'quantum.js', 'ionq.js'];
 const BACK = ['estado.js', 'quantum/util.js', 'quantum/referencia.js', 'quantum/qiskit.js'];
 
