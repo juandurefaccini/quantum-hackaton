@@ -1,24 +1,15 @@
 // On-screen diagnostics: a failed run must never be a black screen.
 // The panel lives on <body>, so mount() clearing #root cannot remove it.
 // Arranca OCULTO: se muestra con el checkbox "Debug" del header (o ante un error).
-const DEBUG_KEY = 'quards:debug';
 let panel = null;
 let pre = null;
-let visible = false;
-
-function loadPref() {
-  try { return localStorage.getItem(DEBUG_KEY) === '1'; } catch { return false; }
-}
-function savePref(value) {
-  try { localStorage.setItem(DEBUG_KEY, value ? '1' : '0'); } catch { /* sin storage */ }
-}
+let visible = false; // arranca apagado (no se persiste entre sesiones)
 
 export function isDebugVisible() { return visible; }
 
-// Muestra u oculta el panel (y recuerda la preferencia).
+// Muestra u oculta el panel.
 export function setDebugVisible(value) {
   visible = !!value;
-  savePref(visible);
   ensurePanel().classList.toggle('debug-off', !visible);
 }
 
@@ -37,6 +28,9 @@ function ensurePanel() {
   head.append(toggle);
   pre = document.createElement('pre');
   panel.append(head, pre);
+  // Arranca COLAPSADO (solo la barra de título): así no tapa la mano del jugador.
+  // Se expande con el botón "–" o automáticamente ante un error (ver fail).
+  panel.classList.add('collapsed');
   panel.classList.toggle('debug-off', !visible);
   (document.body || document.documentElement).append(panel);
   return panel;
@@ -50,7 +44,7 @@ function push(line) {
 }
 
 export function initDebug() {
-  visible = loadPref();
+  visible = false; // arranca apagado; un error real lo destapa (ver fail)
   ensurePanel();
   window.addEventListener('error', event => fail(`error: ${event.message} @ ${event.filename}:${event.lineno}:${event.colno}`));
   window.addEventListener('unhandledrejection', event => {
@@ -63,7 +57,7 @@ export function initDebug() {
 export function log(message) { push(`· ${message}`); console.log(message); }
 export function warn(message) { push(`! ${message}`); console.warn(message); }
 // Un error real siempre destapa el panel (nunca una pantalla negra).
-export function fail(message) { setDebugVisible(true); push(`✖ ${message}`); console.log(`ERR ${message}`); }
+export function fail(message) { setDebugVisible(true); ensurePanel().classList.remove('collapsed'); push(`✖ ${message}`); console.log(`ERR ${message}`); }
 
 export function showFatal(root, error) {
   const text = error && error.stack ? error.stack : String(error);

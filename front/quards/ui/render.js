@@ -231,6 +231,7 @@ export async function mount(root) {
   let selectedId = null;
   let press = null;
   let busy = false;
+  let recent = []; // narraciones recientes (máx 3) que se muestran en el panel Info
   let inspected = null; // { id, p }: carta bajo el mouse (resumen de estado en el panel de info)
   const probCache = new Map();
   const phaseCache = new Map();
@@ -283,6 +284,29 @@ export async function mount(root) {
     if (!isHumanTurn()) return 'La IA está pensando… Pasá el mouse por tus cartas para ver su estado.';
     if (!rules.hasMove(state)) return 'No tenés jugadas posibles: robá una carta (botón debajo del mazo).';
     return 'Tu turno: jugá una carta o prepará con una puerta.';
+  }
+
+  // Narración para el panel Info: qué cara salió, con qué probabilidad y cómo quedó la jugada.
+  // `bits` viene de la medición (null para cartas clásicas); `pct0` es P(|0⟩) en % antes de medir.
+  function describeResult(id, bits, res, who, pct0 = null) {
+    const c = state.cards[id];
+    const verb = who === 'IA' ? 'La IA jugó' : 'Jugaste';
+    let collapse = '';
+    if (bits && c.qubit != null && bits[c.qubit] != null) {
+      const bit = bits[c.qubit];
+      const pct = pct0 == null ? null : Math.round(bit === 0 ? pct0 : 100 - pct0);
+      collapse = ` — colapsó a |${bit}⟩${pct == null ? '' : ` (${pct}% de las veces)`}`;
+    }
+    const verdict = res?.won ? ' ✔ Ganó la partida.' : res?.valid ? ' ✔ Válida → descarte.' : ' ✘ Inválida: queda en la mano y roba 1.';
+    return `${verb} ${rules.describeFace(c.face)}${collapse}.${verdict}`;
+  }
+
+  // Guarda una narración para el panel Info (quedan las últimas 3) y la manda también al panel Debug.
+  function pushEvent(text) {
+    if (!text) return;
+    recent.push(text);
+    if (recent.length > 3) recent.shift();
+    log(text);
   }
 
   // Entrelazada = otro qubit de su grupo sigue sin medir. Su fase no es "de la carta sola".
@@ -340,7 +364,7 @@ export async function mount(root) {
     const grad = f => f.color ?? 'grey';
     let probs = null, phase = null;
     if (c.face) {
-      mountQard(node, { kind: 'classic', color: grad(c.face), symbol: symOf(c.face) });
+      mountQard(node, { kind: 'classic', color: opts.bgColor ?? grad(c.face), symbol: symOf(c.face) });
     } else {
       const p = probs = await probsFor(id);
       phase = await phaseFor(id);
@@ -451,13 +475,16 @@ export async function mount(root) {
       log(`Midiendo con ${quantum.kind()}…`);
       await render();
       try {
+        const pct0 = await prob0Of(id);
         const bits = await playCollapse({
           state, group: r.needsMeasure, cardId: id,
           bitsPromise: quantum.medirGrupo(r.needsMeasure),
-          symOf, prob0: await prob0Of(id),
+          symOf, prob0: pct0,
         });
-        rules.resolveMeasure(state, bits);
+        pushEvent(describeResult(id, bits, rules.resolveMeasure(state, bits), 'Tú', pct0));
       } catch (error) { warn(`medición falló: ${error?.message ?? error}`); }
+    } else {
+      pushEvent(describeResult(id, null, r, 'Tú'));
     }
     await render();
     if (state.discard[state.discard.length - 1] === id) flyToDiscard(srcRect, ghost);
@@ -625,6 +652,7 @@ export async function mount(root) {
   newBtn.addEventListener('click', async () => {
     state = rules.newGame({ seed: Date.now() % 100000 });
     probCache.clear(); phaseCache.clear();
+    recent = [];
     spyMode = false; spyResult = null; spied.clear();
     lastCounts = { me: state.players[0].hand.length, opp: state.players[1].hand.length };
     pendingGate = null; selectedId = null; busy = false;
@@ -654,13 +682,16 @@ export async function mount(root) {
         if (r.needsMeasure) {
           await render();
           try {
+            const pct0 = await prob0Of(action.cardId);
             const bits = await playCollapse({
               state, group: r.needsMeasure, cardId: action.cardId,
               bitsPromise: quantum.medirGrupo(r.needsMeasure),
-              symOf, prob0: await prob0Of(action.cardId),
+              symOf, prob0: pct0,
             });
-            rules.resolveMeasure(state, bits);
+            pushEvent(describeResult(action.cardId, bits, rules.resolveMeasure(state, bits), 'IA', pct0));
           } catch (e) { warn(`medición IA: ${e?.message ?? e}`); }
+        } else if (r.valid !== undefined) {
+          pushEvent(describeResult(action.cardId, null, r, 'IA'));
         }
         played = { id: action.cardId, rect };
         stepMs = AI_PLAY_MS;
@@ -702,6 +733,7 @@ export async function mount(root) {
         : [el('option', { value: 'referencia' }, 'Referencia'),
            ...(hasIonQ ? [el('option', { value: 'ionq' }, 'IonQ')] : [])]));
     engineSel.value = quantum.kind();
+    debugCb.checked = isDebugVisible(); // sincroniza el checkbox con el panel (que puede cambiar solo, ante errores)
 
     // Cartas de la IA: boca abajo. Se pueden elegir (ojo o target de CNOT) sin exponer su id en el DOM.
     const rivalTargetable = isHumanTurn() && (spyMode || (pendingGate?.gate === 'cnot' && pendingGate.a !== null));
@@ -716,7 +748,12 @@ export async function mount(root) {
     oppCountEl.textContent = `${opp.hand.length} · ${opp.gates.length}🔑`;
 
     deckEl.replaceChildren(el('span', { class: 'count' }, state.deck.length));
-    discardEl.replaceChildren(await cardEl(state.discard[state.discard.length - 1]));
+    const topId = state.discard[state.discard.length - 1];
+    const topFace = state.cards[topId].face;
+    // Un comodín no tiene color propio: el descarte se pinta con el color vigente (activeColor)
+    // para que se vea qué hay que matchear.
+    const wildTop = topFace.symbol === 'wild' || topFace.symbol === 'wild4';
+    discardEl.replaceChildren(await cardEl(topId, wildTop ? { bgColor: state.activeColor } : {}));
 
     handEl.replaceChildren();
     const pods = new Map();
@@ -769,6 +806,7 @@ export async function mount(root) {
     if (pendingGate) hintEl.textContent = GATE_HINT[pendingGate.gate];
     else if (spyMode) hintEl.textContent = 'Ojo: elegí una carta cuántica de la IA (las resaltadas) y te muestro uno de sus estados posibles con la carta asociada.';
     else if (selectedId) hintEl.textContent = 'Arrastrá la carta al descarte o clickeá el descarte para jugarla.';
+    else if (recent.length) hintEl.textContent = recent.join('\n');
     else hintEl.textContent = contextHint();
     renderState();
     renderSpy();

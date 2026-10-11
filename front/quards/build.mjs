@@ -12,7 +12,7 @@ const HERE = fileURLToPath(new URL('.', import.meta.url)); // front/quards/
 const ROOT = resolve(HERE, '..', '..');
 const OUT = resolve(HERE, '..', 'quards.zip');
 const TMP = resolve(ROOT, '.quards-build');
-const FILES = ['index.html', 'main.css', 'main.js', 'README.md', 'DESIGN.md'];
+const FILES = ['index.html', 'main.css', 'main.js'];
 const DIRS = ['services', 'ui', 'back'];
 
 rmSync(TMP, { recursive: true, force: true });

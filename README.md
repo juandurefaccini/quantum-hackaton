@@ -1,154 +1,155 @@
-# Quards — UNO cuántico
+<!--
+Topics (repo settings): qiskit, quantum-game, ionq, quantum-computing, unocards, educational
+-->
 
-Juego de cartas donde cada carta es un **qubit** con dos caras posibles (una por cada estado
-`|0⟩` y `|1⟩`). Gana quien se queda sin cartas antes que el rival: **persona vs. IA**.
+# Quards — quantum UNO
 
-El juego vive en **JS puro (ES modules)**, sin frameworks, sin bundler y sin dependencias. El
-motor de reglas está desacoplado de la UI, y el colapso de las cartas pasa por un **adaptador
-cuántico** (simulador local, Qiskit o IonQ).
+**Every card is a qubit:** it holds two possible faces at once and only collapses to one when you play it.
 
-- Especificación: [`docs/idea.md`](docs/idea.md)
-- Decisiones de diseño: [`docs/decisions.md`](docs/decisions.md)
-- Plan de implementación: [`docs/plan.md`](docs/plan.md)
-- Detalle de la app: [`front/quards/README.md`](front/quards/README.md) y
-  [`front/quards/DESIGN.md`](front/quards/DESIGN.md)
+![A play being measured](assets/demo.gif)
 
-## Requisitos
+> **Demo GIF placeholder.** Record ~10s of a normal turn (draw → apply a gate → play a card → the
+> collapse animation), then save it as `assets/demo.gif`. See [`assets/`](assets/) for details.
 
-- **Node.js 18+** (el dev-server usa `fetch` global y `node:http`). No hay `npm install`:
-  el proyecto no tiene dependencias.
-- Un navegador moderno (ES modules + import maps).
+## Play it now
 
-## Cómo levantar la app
-
-El **punto de entrada está en la raíz**: `index.html` + `main.js` montan la app (que vive en
-`front/quards/`) dentro de `#root`. Se sirve con un **dev-server** incluido que, además de servir
-el repo, **proxya IonQ** (para que el browser no llame directo a la API ni exponga la key).
-
-Desde la raíz del repo:
+One command (Node.js 18+, no `npm install`, no build):
 
 ```bash
 node front/quards/dev-server.mjs
 ```
 
-Luego abrir:
+Then open <http://localhost:8000>. The default engine is a local simulator, so **no API keys and no
+account are needed** to play.
 
-```
-http://localhost:8000
-```
+## How to play
 
-`/` redirige a `/index.html`, el entry raíz, que monta el juego.
+You vs. AI, heads-up. **First to empty their hand wins** (gates/cards of other kinds don't count).
 
-El server también acepta:
+- You start with **7 cards**. A card is either **classic** (one face — the usual UNO colors/numbers)
+  or **quantum** (two possible faces, e.g. *Red 5* / *Blue 2*).
+- On your turn you can **prepare for free** and then **play once**:
+  - **Prepare:** apply any of your **gates** — `X`, `Z`, `H` (on one card) or `CNOT` (two cards).
+    This costs nothing and does **not** measure.
+  - **Play:** drag a card onto the discard pile. **This measures it** — or **draw** if you can't play.
+- **A card is playable** if *either* of its possible faces matches the discard (same color or same
+  symbol), or if it's a wild.
+- **Measuring** collapses the card to one face: if it matches, the card goes to the discard and its
+  effect fires; if not, the card stays in your hand (now collapsed) and **you draw 1**.
+- **Gates are granted, not drawn:** you get **1 random gate every 2 of your turns**, and can hold up
+  to **3**. `CNOT` entangles two cards, so measuring one fixes the other.
+- **Effects (2 players):** skip/reverse → the opponent loses a turn; **+2** → opponent draws 2 and
+  skips; **wild** → choose a color; **+4** → choose a color and opponent draws 4 and skips.
+- **Spy ("eye"):** you start with **1** and gain **1 every 2 turns** (up to **2**). Spend one to peek
+  at one of the opponent's quantum cards.
 
-```bash
-node front/quards/dev-server.mjs --port 8000          # puerto (default 8000)
-node front/quards/dev-server.mjs --env /ruta/a/.env   # archivo .env con la key de IonQ
-node front/quards/dev-server.mjs --key TU_IONQ_KEY    # key directa
-```
+Full rules (Spanish): [`docs/idea.md`](docs/idea.md).
 
-> Alternativa: `cd front/quards && npm run dev`.
+## The quantum part
 
-> El dev-server sirve **todo el repo** (no solo la app) para que `services/` pueda importar
-> `../../../back/` y para poder abrir los prototipos de cartas con el mismo server.
-
-### Motor cuántico
-
-El puerto cuántico (`front/quards/services/quantum.js`) elige el adaptador según el entorno:
-
-| Motor | Cuándo | Qué usa |
+| Game piece | Quantum object | Where in the code |
 | :-- | :-- | :-- |
-| **referencia** | local, **por defecto** | Simulador JS (`back/quantum/referencia.js`) |
-| **IonQ** | local con `?engine=ionq` | `services/ionq.js` vía el proxy del dev-server |
-| **Qiskit** | dentro de Qollab | `back/quantum/qiskit.js` (Statevector) |
+| Classic card | A basis state (definite `\|0⟩` or `\|1⟩`) | `back/estado.js` |
+| Quantum card | A qubit in **superposition** of two faces | `back/estado.js`, prep with `ry` |
+| Entangled group | Two/more qubits sharing a circuit (**CNOT**) | `back/estado.js` (`aplicarCnot`) |
+| Gate X / Z / H | Single-qubit gate: `X` (bit flip), `Z` (phase), `H` (phase↔probability) | `back/quantum/referencia.js` |
+| Gate CNOT | Two-qubit entangling gate | `back/quantum/referencia.js` |
+| Playing a card | **Measurement** (collapse of the group) | `front/quards/services/quantum.js` |
 
-Las **probabilidades** siempre son exactas (Statevector en Qollab, referencia en local). IonQ solo
-aporta la **medición** (el colapso real).
+Gate effects, each checked against the simulator: [`docs/gates.md`](docs/gates.md). Concepts in plain
+language: [`docs/quantum-concepts.md`](docs/quantum-concepts.md).
 
-### IonQ (opcional)
+## Run the circuit with Qiskit
 
-Para usar el simulador de IonQ en local:
+The exact same three operations (prepare, entangle, measure) as a standalone Qiskit program. Runnable
+end-to-end in [`examples/quards_circuit.ipynb`](examples/quards_circuit.ipynb) (or
+[`examples/quards_circuit.py`](examples/quards_circuit.py)):
 
-1. Copiá `front/quards/.env.example` a `front/quards/.env` y completá `IONQ_API_KEY`.
-   (También podés pasar la key con `--key` o `--env <ruta>`.)
-2. Levantá el dev-server.
-3. Abrí el juego con `?engine=ionq`:
+```python
+import math
+from qiskit import QuantumCircuit
+from qiskit.quantum_info import Statevector
 
-   ```
-   http://localhost:8000/front/quards/dev.html?engine=ionq
-   ```
+# Pure Qiskit (Statevector) — no backend, no Aer. Also runs in Qollab's Pyodide runtime.
+def measure(qc, shots=2000):
+    return Statevector(qc).sample_counts(shots)   # sampling the state IS the measurement
 
-La key **nunca va al browser ni al repo**: `.env` está en `.gitignore` y el dev-server la usa
-server-side. Para el backend Qiskit en **Qollab**, ver `front/quards/README.md`.
+# A quantum card: |0> with 80% probability (the face it shows when measured).
+theta = math.atan2(math.sqrt(1 - 0.6**2), 0.6)    # z = 0.6  ->  P(0) = (1+z)/2 = 0.8
+card = QuantumCircuit(1)
+card.ry(theta, 0)                                 # PREPARE: superposition of the two faces
+print(measure(card))                              # MEASURE: collapse to one face
 
-## Prototipos de cartas
-
-Con el dev-server levantado, los prototipos visuales quedan accesibles en:
-
-```
-http://localhost:8000/cards/index.html            # cartas cuánticas + clásicas (hover)
-```
-
-> Se sirven por HTTP (no abrir con `file://`): al usar ES modules, el navegador bloquea los
-> imports por CORS sobre el sistema de archivos.
-
-## Empaquetar el proyecto
-
-`utils/zip.js` arma un zip con **todo el proyecto**. No tiene dependencias: el contenedor ZIP se
-escribe con `node:zlib` (deflate crudo) + CRC32, así que no necesita el binario `zip` ni
-`npm install`.
-
-```bash
-node utils/zip.js                      # -> quantum-hackaton.zip en la raíz del repo
-node utils/zip.js --out dist/app.zip   # elegir la ruta de salida
+# An entangled pair: CNOT links two cards (only |00> and |11> appear).
+pair = QuantumCircuit(2)
+pair.ry(math.pi / 2, 0)                           # control card in an exact 50/50
+pair.cx(0, 1)                                     # ENTANGLE: control -> target
+print(measure(pair))
 ```
 
-- Busca la raíz con `git rev-parse --show-toplevel` (si no hay git, usa el directorio actual).
-- Ignora `node_modules`, `.git`, `.atl`, `dist`, `build`, `.venv`, `venv`, `.idea`, `.vscode`, y
-  los archivos `.DS_Store`, `*.log` y `*.zip`.
-- Salida por defecto: `quantum-hackaton.zip` en la raíz del repo.
+Pinned dependencies: [`examples/requirements.txt`](examples/requirements.txt)
+(`qiskit==2.5.2`, `qiskit-ionq==1.1.1`, Python 3.11). The example uses only **pure Qiskit
+(`Statevector`)**, so it needs no native wheels — it runs with a plain
+`pip install -r examples/requirements.txt` **and** in Qollab's Pyodide environment.
 
-> Para el bundle de **solo la app** en formato plano de Qollab (`front/quards.zip`) usá
-> `node front/quards/build.mjs`.
+**In Qollab:** the same circuit runs in the browser's Pyodide runtime — build it, then submit it to an
+**IonQ simulator or QPU** by selecting the backend in *Select QPU* and pressing **Run**.
 
-## Tests
+## Engines
 
-Desde la raíz del repo:
+The collapse goes through one port (`front/quards/services/quantum.js`) with three adapters:
 
-```bash
-node --import ./front/quards/tests/qiskit-hooks.mjs --test front/quards/tests/services.test.js
-```
+| Engine | When | Probabilities | Measurement | Status |
+| :-- | :-- | :-- | :-- | :-- |
+| `referencia` | local, **default** | exact (JS simulator) | local sampling | **verified** (runs here, used by the tests) |
+| `ionq` | local, `?engine=ionq` | exact (local) | IonQ REST API via dev-server proxy | **not verified** (no API key in this repo) |
+| `qiskit` | inside Qollab | Qiskit `Statevector` | `backend.run` | **not verified** (requires Qollab) |
 
-O, desde `front/quards/`:
+Switch engines: append `?engine=ionq` to the URL, or use the **Engine** dropdown in the header.
+Probabilities are always exact (Statevector / reference). IonQ only supplies the measurement. If a
+remote engine fails, it falls back to the reference simulator. Details:
+[`docs/engines.md`](docs/engines.md).
 
-```bash
-cd front/quards
-npm test
-```
-
-El motor del back hace `import ... from 'qiskit'`. En el navegador esa import se resuelve con un
-**import map** a `quantum/qiskit-stub.js`; como Node no tiene import maps, `qiskit-hooks.mjs`
-registra un **hook de resolución** que mapea `qiskit` y `qiskit.quantum_info` al mismo stub. Los
-tests corren con el motor de referencia local, así que el stub (que lanza) nunca se invoca.
-
-## Estructura
+## Repo layout
 
 ```
-.
-├── index.html          ENTRY del repo (raíz) · monta el juego en #root
-├── main.css            estilos del juego (raíz)
-├── main.js             ENTRY del repo (raíz) · importa front/quards/main.js
-├── README.md
-├── docs/               idea · decisions · plan
-├── back/               motor del juego (estado.js) + capa cuántica (quantum/)
-│   ├── estado.js
-│   └── quantum/        qiskit.js · referencia.js
-├── front/
-│   └── quards/         APP PRINCIPAL (dev-server, tests, ui, services)
-├── cards/              prototipos de cartas (index · card_final)
-└── utils/zip.js        empaquetador del proyecto (zip sin dependencias)
+index.html  main.js  main.css   entry point (root) — mounts the game in #root
+back/                           pure engine + quantum layer (no rules, no randomness of collapse)
+  estado.js                     deck, cards, groups/circuits, createGame, checkState
+  quantum/{util,referencia,qiskit}.js
+front/quards/                   the app
+  services/                     the only layer the UI knows: engine, quantum (port), rules, ai, ionq
+  ui/                           DOM, card, collapse animation, background, audio, debug
+examples/                       runnable Qiskit notebook + pinned requirements
+docs/                           all documentation (mostly Spanish)
+assets/                         demo.gif
+utils/zip.js                    whole-repo zip (no dependencies)
 ```
 
-## Licencia
+Docs: [`ARCHITECTURE.md`](docs/ARCHITECTURE.md) (canonical implementation) ·
+[`gates.md`](docs/gates.md) · [`quantum-concepts.md`](docs/quantum-concepts.md) ·
+[`determinism.md`](docs/determinism.md) · [`engines.md`](docs/engines.md) ·
+[`known-issues.md`](docs/known-issues.md) · [`roadmap.md`](docs/roadmap.md).
 
-MIT — ver [LICENSE](LICENSE).
+## What we learned
+
+- A game is a great place to make **superposition and measurement tangible**: a card's two faces
+  *are* the two basis states, and "playing" *is* measuring.
+- Keeping the engine a **plain, serializable object** (`back/estado.js`) with no rules and no collapse
+  randomness made the whole thing testable and the quantum port swappable.
+- **Partial measurement** is subtle: measuring one card in an entangled group still conditions the
+  others, so the simulator recomputes the rest of the group from the measured bits.
+- Shipping to Qollab constrains the code: only **static** ES-module imports get bundled.
+
+## Remix it
+
+- **Smarter AI:** replace the heuristic with expectimax over the hidden probabilities.
+- **Multiplayer:** move the engine to a server that holds each player's hand.
+- **New quantum content:** multi-qubit GHZ states, phase gates, Grover's oracle as the spy — see the
+  proposals in [`docs/mejoras/`](docs/mejoras/) and [`docs/roadmap.md`](docs/roadmap.md).
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+This effort is supported via compute credits from Qollab and IonQ.

@@ -168,7 +168,7 @@ body.is-dragging, body.is-dragging * { cursor: grabbing !important; user-select:
   border-left: 4px solid var(--gold);
 }
 .hint-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--muted); }
-.hint-text { margin: 0; font-size: 14px; line-height: 1.35; color: var(--gold); }
+.hint-text { margin: 0; font-size: 13px; line-height: 1.3; color: var(--gold); white-space: pre-line; }
 /* resumen de estado de la carta bajo el mouse: reemplaza el texto de ayuda mientras dura el hover */
 .hint-box.show-state .hint-text { display: none; }
 .hint-state { display: none; flex-direction: column; gap: 6px; font-size: 14px; }

@@ -1,0 +1,9 @@
+# Quards — ejemplo de circuito cuántico
+# Versiones fijadas a las verificadas en este repo (Python 3.11).
+#
+#   python -m pip install -r requirements.txt
+#
+# El ejemplo usa solo Qiskit puro (Statevector), así que NO necesita Aer.
+# qiskit-ionq es opcional: solo hace falta para correr en IonQ (requiere token).
+qiskit==2.5.2
+qiskit-ionq==1.1.1

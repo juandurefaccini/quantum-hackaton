@@ -1,83 +1,84 @@
-# Quards
+# Quards — Concepto y especificación funcional
 
-**Quards** es un **UNO cuántico**: un juego de cartas donde cada carta es un qubit en superposición. Gana quien se queda **sin cartas qubit** antes que el rival (las compuertas/entrelazamientos/acciones que le queden no cuentan). Persona vs. IA, y luego multijugador.
+**Quards** es un **UNO cuántico**: un juego de cartas donde cada carta es un qubit con dos caras
+posibles, una por cada estado `|0⟩` y `|1⟩`. Es 1v1 (**persona vs. IA**). Gana quien se queda
+**sin cartas en la mano**.
 
-## Tipos de cartas
+> Documento de **producto/spec**. Para la implementación ver [`ARCHITECTURE.md`](ARCHITECTURE.md);
+> para las decisiones y su motivo, [`decisions.md`](decisions.md); para el estado del trabajo,
+> [`plan.md`](plan.md).
 
-| Carta | Qué es | Equivalente real |
-| :---- | :---- | :---- |
-| **Carta qubit** | Carta tipo UNO con **dos caras posibles** (por ejemplo Rojo 5 y Azul 2), una por cada estado |0⟩ y |1⟩. Cada carta es un qubit aislado. | Qubit |
-| **Carta de compuerta** | Se aplica sobre una carta qubit propia y cambia su estado: **X** intercambia las probabilidades de sus caras, **H** la deja en superposición 50/50, **Z** cambia la fase (solo se nota combinada con H). *(Se otorga por turno; no está en el mazo.)* | Compuertas de un qubit |
-| **Carta de entrelazamiento (2 o 3\)** | Une 2 o 3 cartas qubit de tu mano: sus resultados quedan correlacionados. *(Se otorga cada 2 turnos; no está en el mazo.)* | Par de Bell / GHZ |
+---
 
-## Reglas
+## 1. Idea
 
-1. Cada jugador arranca con **7 cartas qubit** ("normales"), cada una **definida** (|0⟩ o |1⟩) **o en superposición 50/50**, al azar; su estado solo lo conoce su dueño. *(Ver `decisions.md`.)*  
-2. En tu turno tenés **dos fases**:  
-   - **Preparar (libre):** aplicás **cuantas compuertas y entrelazamientos quieras** (incluso varias compuertas a la misma carta). No cuesta turno y **no mide** la carta.  
-   - **Jugar (una):** **jugar una carta qubit** sobre el descarte (se mide/colapsa), **jugar una acción UNO**, o **robar** (solo si no podés jugar). Cierra el turno.  
-3. **Una carta qubit es jugable si al menos una de sus caras posibles** (con probabilidad mayor que 0\) coincide con el descarte, por color o número.  
-4. Al jugarla, **colapsa**: sale una cara según las probabilidades.  
-   - Si la cara coincide con el descarte, la carta es **válida** y va al descarte.  
-   - Si **no** coincide, es inválida: la carta jugada queda **colapsada** y **vuelve a tu mano**, y además robás una **carta externa del mazo** que queda colapsada al vuelo (fija en la cara que salió, sin superposición). Termina el turno.  
-5. Si la carta estaba **entrelazada**, al colapsar se fijan también las cartas con las que estaba unida, correlacionadas con el resultado.
+En UNO clásico, una carta tiene un color y un símbolo, y la jugás si matchea el descarte. Acá una
+carta puede estar en **superposición**: sus dos caras son dos cartas posibles a la vez. Recién al
+**jugarla se mide** y sale una de las dos. El jugador apuesta: una carta con 50 % de ser jugable
+*puede* servir, pero si sale mal paga una penalización.
 
-## Otorgamiento por turno
+La capa cuántica se usa de verdad: la superposición la prepara un circuito (`ry`), el entrelazado es
+un **CNOT** y el colapso lo decide un **motor cuántico** (simulador local, IonQ o Qiskit).
 
-Las compuertas y el entrelazamiento **no están en el mazo**: se otorgan.
+## 2. Piezas del juego
 
-- Al inicio de tu turno recibís **1 compuerta aleatoria** (X, H o Z).
-- **Cada 2 turnos globales** (turno 2, 4, 6…), además, **1 entrelazamiento aleatorio** (2 o 3 cartas).
-- Van a tu mano y podés usarlas ese mismo turno (el turno 1 también otorga).
+| Pieza | Qué es | Equivalente cuántico |
+| :-- | :-- | :-- |
+| **Carta clásica** | Carta de UNO común: color + número o acción (skip/reverse/+2) + comodines (`wild`, `wild4`). Una sola cara. | Estado base |
+| **Carta cuántica** | Carta con **dos caras posibles** (p. ej. Rojo 5 / Azul 2), una por estado `\|0⟩` y `\|1⟩`. Su estado solo lo conoce su dueño. | Qubit en superposición |
+| **Grupo entrelazado** | Dos o más cartas cuánticas unidas por un **CNOT**: sus resultados quedan correlacionados. | Par de Bell / GHZ |
+| **Puerta** | Operación cuántica: **X** (intercambia probabilidades), **H** (las convierte en fase), **Z** (invierte la fase), **CNOT** (entrelaza dos cartas). **No es una carta.** | Compuertas |
 
-## Acciones de UNO (mapeo clásico 2p)
+## 3. Reglas
 
-El mazo incluye, además de las cartas qubit, cartas de acción **de color** (una sola cara), que se
-juegan matcheando color o símbolo:
+1. Cada jugador arranca con **7 cartas** (clásicas o cuánticas, al azar).
+2. En tu turno:
+   - **Preparar (libre):** aplicás las puertas de tu mano que quieras (X/Z/H a una carta, CNOT a
+     dos). **No cuesta turno y no mide.**
+   - **Jugar (una):** jugás una carta (arrastrándola al descarte) o **robás** (solo si no podés
+     jugar). Esto **cierra el turno**.
+3. Una carta es **jugable** si **alguna de sus caras posibles** coincide con el descarte (por color
+   o símbolo), o si es comodín.
+4. Al jugarla, **se mide** (colapsa el grupo):
+   - Si la cara sale **coincidiendo** con el descarte → **válida**: va al descarte y aplica su efecto.
+   - Si **no** coincide → **inválida**: la carta queda en tu mano **colapsada** y **robás 1**. Termina
+     el turno.
+5. Si la carta estaba **entrelazada**, al medir su qubit las demás cartas del grupo quedan
+   **condicionadas** por ese resultado (siguen en superposición, pero con las probabilidades
+   ajustadas).
 
-| Acción | Efecto (2 jugadores) |
+## 4. Puertas (se otorgan, no están en el mazo)
+
+- Recibís **1 puerta aleatoria** (X/Z/H/CNOT) cada **2 turnos propios** (turno 1, 3, 5…), con un
+  **tope de 3** en la mano.
+- Se acumulan y se aplican **gratis** (no cierran el turno). La carta se mide **recién al jugarla**.
+
+## 5. Efectos de carta (UNO clásico, 2 jugadores)
+
+| Carta | Efecto |
 | :-- | :-- |
 | **Skip** | El rival pierde su turno. |
-| **Reverse** | En 2 jugadores equivale a **Skip** (volvés a jugar). |
-| **+2** | El rival roba 2 cartas (colapsadas del mazo) y pierde el turno. |
+| **Reverse** | En 2 jugadores equivale a **skip** (volvés a jugar). |
+| **+2** | El rival roba 2 y pierde el turno. |
+| **Comodín** | Elegís color (hoy: se elige automáticamente el más frecuente de tu mano). |
+| **+4** | Elegís color y el rival roba 4 y pierde el turno. |
 
-## Dónde está la estrategia
+## 6. Mecánica extra: el ojo (espía)
 
-- **Apostar**: una carta con 50% de ser válida es jugable, pero puede costarte una carta de penalización.  
-- **Ahorrar jugadas**: una carta de entrelazamiento puede dejar 2 o 3 cartas listas con una sola acción, en lugar de gastar una compuerta por cada una. Esa es la mecánica de "ahorrar compuertas".  
-- **Riesgo del entrelazamiento**: si jugás una carta entrelazada y sale mal, arrastrás a las otras al mismo resultado.  
-- **Preparación gratis**: compuertas y entrelazamiento no cuestan turno; el costo es que **no avanzás** hasta que jugás. Podés apilar varias compuertas en una misma carta para maximizar la chance de que el colapso sea válido.  
+Cada jugador tiene **cargas de espía** (arranca con 1, se recarga cada 2 turnos propios, tope 2).
+Gastar una revela **uno de los dos estados posibles** de una carta cuántica del rival (al azar),
+junto con la cara asociada. No mide ni modifica la carta.
 
-## La IA
+## 7. La IA
 
-El simulador es trivial: cada carta tiene como mucho 2 amplitudes. Es un juego de información oculta.
+- **Fácil:** juega cualquier carta jugable.
+- **Media:** elige la de mayor probabilidad de ser válida.
+- **Difícil:** además prueba si una puerta/CNOT mejora la mejor probabilidad antes de jugar.
+  (Objetivo a futuro: expectimax completo + estimación de la mano rival.)
 
-- **Fácil**: juega cualquier carta jugable.  
-- **Media**: elige la carta con mayor probabilidad de ser válida.  
-- **Difícil**: *expectimax* sobre las probabilidades; decide si conviene preparar (compuertas o entrelazamiento) o jugar ya, y estima las manos del rival.
+## 8. Alcance y motores
 
-## Implementación
-
-- **JS puro (ES modules), app en Qollab** (`index.html` + `main.css` + `main.js`), sin frameworks ni bundler.  
-- Motor de juego separado de la UI; el colapso pasa por un **adaptador**: Qiskit sobre el backend de Qollab, o un sampler de statevector local para desarrollo.  
-- Para el hackathon: ejecutar los colapsos con un generador cuántico real (simulador o hardware de IonQ) en lugar de un número aleatorio común.  
-- Imports **estáticos** únicamente (Qollab no empaqueta los dinámicos).
-
-## Puntos resueltos
-
-Todos confirmados; el detalle vive en `decisions.md`:
-
-1. "Queda colapsada" aplica a la carta jugada (vuelve a la mano) **y** a la carta externa (sale del mazo).  
-2. Una carta colapsada no puede recibir compuertas ni entrelazarse, porque ya es clásica.  
-3. Compuertas y entrelazamiento **no** consumen turno (preparación libre); solo jugar/robar y las acciones UNO cierran el turno.  
-4. Conjunto de caras: **4 colores × 0–9** (UNO completo).
-5. La victoria es **sin cartas qubit**; las compuertas/entrelazamientos/acciones que queden no cuentan.
-
-## Alcance de la primera entrega
-
-- **1v1 humano vs IA**, sin servidor. El motor queda desacoplado para poder moverlo a servidor.  
-- IA con 3 niveles (fácil / media / difícil).
-
-## Multijugador (fase futura)
-
-Separación por turnos, con un servidor que mantiene el estado de las cartas y las manos de cada jugador. No entra en la primera entrega.
+- **Alcance:** 1v1 humano vs IA, sin servidor. El motor queda desacoplado para poder moverlo a
+  servidor; **multijugador** es fase futura.
+- **Motores de colapso:** el juego corre en JS puro; el colapso pasa por un **puerto cuántico** con
+  tres adaptadores (`referencia` local, `ionq`, `qiskit`). Detalle en `ARCHITECTURE.md` §2 y §5.
